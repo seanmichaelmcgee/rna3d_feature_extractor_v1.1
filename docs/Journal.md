@@ -78,4 +78,24 @@ This document tracks the progress of testing the RNA feature extraction pipeline
 
 ## Issues and Recommendations
 
-*(Issues found during testing and recommendations for improvement will be documented here)*
+### Enhanced MI Pipeline Discovery
+During our review of the codebase, we discovered a more comprehensive MI pipeline implementation that wasn't fully integrated in our initial testing plan:
+
+1. **New components identified:**
+   - `enhanced_mi.py`: Implements chunking for long RNA sequences, sequence weighting, and RNA-specific APC correction
+   - `mi_config.py`: Provides optimized parameter sets for different hardware profiles and RNA lengths
+   - `docs/mi_extraction_process/readme.md`: Documents the complete MI extraction process
+   - `src/analysis/rna_mi_pipeline/tech_guide.md`: Provides technical guidance for RNA MSA processing
+
+2. **Testing plan update:**
+   - Added tests for the enhanced MI functionality, including chunking
+   - Added validation of different configuration profiles
+   - Expanded edge case testing to include very long RNA sequences
+   - Added memory optimization tests
+
+3. **Integration considerations:**
+   - The enhanced MI pipeline should be the preferred implementation
+   - Need to verify compatibility with existing notebooks
+   - May need to update batch processing scripts to use the enhanced pipeline
+
+This discovery requires adjustments to our testing approach, particularly for Mutual Information Feature Validation.

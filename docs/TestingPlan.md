@@ -72,6 +72,12 @@ python -c "import RNA; print(f'ViennaRNA version: {RNA.__version__}')"
 - Test correlation with known structural contacts
 - Check for statistical significance of top pairs
 - Validate performance with varying MSA depths (few vs. many sequences)
+- Test chunking functionality for sequences > 750 nucleotides
+- Verify MSA quality assessment and sequence weighting
+- Test memory optimization with large MSAs
+- Validate different configuration profiles (limited_resources, standard_workstation, high_performance)
+- Test proper recombination of MI matrices from overlapping chunks
+- Verify RNA-specific APC correction enhances signal-to-noise ratio
 
 ## 4. CLI Script Testing
 
@@ -118,6 +124,12 @@ python -c "import RNA; print(f'ViennaRNA version: {RNA.__version__}')"
    - Check MI matrix dimensions match sequence length
    - Validate top pairs with known structural contacts
    - Cross-reference with 3D distances (validation data only)
+   - Test chunking functionality for sequences > 750 nucleotides
+   - Verify sequence weighting reduces redundancy bias
+   - Test RNA-specific APC correction implementation
+   - Validate parameter optimization for different RNA lengths
+   - Test memory usage monitoring with large MSAs
+   - Compare enhanced MI output with basic implementation
 
 ### Cross-Dataset Validation
 - Compare feature distributions between train and validation sets
@@ -157,11 +169,15 @@ Test error handling with problematic inputs:
    - Verify feature consistency across all targets
    - Check cross-validation metrics
    - Test with validation and test data
+   - Test enhanced MI pipeline with different configuration profiles
 
-5. **Edge Case Testing (20 minutes)**
+5. **Edge Case Testing (30 minutes)**
    - Test with problematic inputs
    - Verify error handling
    - Check log messages and fallback mechanisms
+   - Test very long RNA sequences (>2000 nt) with chunking
+   - Test MSAs with varying quality and sequence count
+   - Verify memory optimization for large datasets
 
 6. **Complete Run (optional, time dependent)**
    - Run full datasets if time permits
