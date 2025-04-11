@@ -1,0 +1,46 @@
+name: rna3d-core
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  # Core Python and compute
+  - python=3.9
+  - pip
+  - numpy=1.26.4
+  - pandas=1.5.3
+  - scipy
+  - scikit-learn
+  
+  # Deep learning
+  - pytorch
+  - pytorch-cuda=11.8
+  - torchvision
+  - tensorboard
+  
+  # RNA structure analysis tools
+  - bioconda::viennarna=2.6.4
+  - bioconda::mafft
+  - bioconda::clustalo
+  - bioconda::infernal
+  
+  # Visualization and notebooks
+  - matplotlib
+  - seaborn
+  - jupyter
+  - ipywidgets
+  - biopython
+  - pymol-open-source
+  
+  # Additional dependencies
+  - tqdm
+  - h5py
+  - pyyaml
+  
+  # Pip packages
+  - pip:
+      - py3Dmol
+      - evcouplings
+      - biotite
