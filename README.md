@@ -10,6 +10,8 @@ A streamlined toolkit for extracting features from RNA molecules for machine lea
 
 ## Installation
 
+### Option 1: Standard Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/rna3d_feature_extractor.git
@@ -17,6 +19,23 @@ cd rna3d_feature_extractor
 
 # Install dependencies
 pip install -e .
+```
+
+### Option 2: Docker Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/rna3d_feature_extractor.git
+cd rna3d_feature_extractor
+
+# Build the Docker image
+docker build -t rna3d-extractor .
+
+# Run the container
+docker run --rm \
+  -v $(pwd)/data/raw:/app/data/raw \
+  -v $(pwd)/data/processed:/app/data/processed \
+  rna3d-extractor
 ```
 
 ## Requirements
@@ -53,6 +72,49 @@ rna3d_feature_extractor/
         ├── dihedral_analysis.py
         └── mutual_information.py
 ```
+
+## Docker Usage
+
+The included Dockerfile provides a containerized environment with all dependencies pre-installed. This ensures consistent behavior across different systems.
+
+### Building the Docker Image
+
+```bash
+docker build -t rna3d-extractor .
+```
+
+### Running the Container
+
+Basic usage with default parameters:
+
+```bash
+docker run --rm \
+  -v $(pwd)/data/raw:/app/data/raw \
+  -v $(pwd)/data/processed:/app/data/processed \
+  rna3d-extractor
+```
+
+Advanced usage with custom parameters:
+
+```bash
+docker run --rm \
+  -v $(pwd)/data/raw:/app/data/raw \
+  -v $(pwd)/data/processed:/app/data/processed \
+  -e JOBS=4 -e PF_SCALE=2.0 \
+  rna3d-extractor
+```
+
+For interactive exploration:
+
+```bash
+docker run --rm -it \
+  -v $(pwd)/data/raw:/app/data/raw \
+  -v $(pwd)/data/processed:/app/data/processed \
+  --entrypoint /bin/bash \
+  rna3d-extractor
+```
+
+For more information on Docker integration and testing strategies, see [docker-testing-strategy.md](docs/docker-testing-strategy.md).
 
 ## License
 

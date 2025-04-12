@@ -12,6 +12,15 @@ mamba activate rna3d-core
 python -c "import RNA; print(f'ViennaRNA version: {RNA.__version__}')"
 ```
 
+### Docker Environment Validation
+```bash
+# Build the Docker image
+docker build -t rna3d-extractor .
+
+# Verify ViennaRNA in Docker container
+docker run --rm -it --entrypoint /bin/bash rna3d-extractor -c "micromamba run -n rna3d-core python -c \"import RNA; print(f'ViennaRNA version: {RNA.__version__}')\""
+```
+
 ### Data Verification
 - Verify raw data directories contain expected files
 - Confirm existence of train/validation/test files
@@ -21,11 +30,13 @@ python -c "import RNA; print(f'ViennaRNA version: {RNA.__version__}')"
 ### Output Directory Preparation
 - Ensure data/processed/ subdirectories exist for feature outputs
 - Create consistent directory structure across notebooks
+- Verify write permissions for Docker volume mounts
 
 ### ViennaRNA Version Check
 - Verify ViennaRNA installation and version compatibility
 - Confirm version 2.6.4 as specified in environment.yml
 - Check proper initialization message from thermodynamic_analysis.py
+- Ensure versions match between local and Docker environments
 
 ## 2. File Naming and Output Structure Verification
 
@@ -148,45 +159,60 @@ Test error handling with problematic inputs:
 
 ## 7. Execution Plan
 
-1. **Environment Setup (10 minutes)**
+1. **Environment Setup (20 minutes)**
    - Activate mamba environment
    - Verify ViennaRNA installation
-   - Check directory structure
+   - Build Docker image (Phase 1 Docker testing)
+   - Verify Docker environment setup
+   - Check directory structure and permissions
 
-2. **Single Target Testing (20 minutes)**
+2. **Single Target Testing (30 minutes)**
    - Select one well-understood target
    - Run through all three notebooks with LIMIT=1
    - Validate all output files and naming patterns
    - Check feature consistency and quality
+   - Run minimal Docker test with the same target
 
-3. **CLI Script Testing (20 minutes)**
+3. **CLI Script Testing (30 minutes)**
    - Test each script with a single target
    - Verify outputs match notebook-generated files
    - Test batch processing with 3-5 targets
+   - Run component tests in Docker (Phase 2 Docker testing)
 
-4. **Small Batch Testing (30 minutes)**
+4. **Small Batch Testing (40 minutes)**
    - Run notebooks with LIMIT=5
    - Verify feature consistency across all targets
    - Check cross-validation metrics
    - Test with validation and test data
    - Test enhanced MI pipeline with different configuration profiles
+   - Run equivalent batch test in Docker
 
-5. **Edge Case Testing (30 minutes)**
+5. **Edge Case Testing (40 minutes)**
    - Test with problematic inputs
    - Verify error handling
    - Check log messages and fallback mechanisms
    - Test very long RNA sequences (>2000 nt) with chunking
    - Test MSAs with varying quality and sequence count
    - Verify memory optimization for large datasets
+   - Compare local and Docker results for edge cases
 
-6. **Complete Run (optional, time dependent)**
+6. **Integration Testing (30 minutes)**
+   - Run integration workflows in Docker (Phase 3 Docker testing)
+   - Test end-to-end pipeline in local and Docker environments
+   - Compare results for consistency
+   - Verify multi-feature pipeline
+
+7. **Performance Testing (optional, time dependent)**
    - Run full datasets if time permits
    - Check resource usage and performance
+   - Monitor Docker resource utilization
+   - Compare performance between local and Docker environments
 
-7. **Documentation and Reporting (20 minutes)**
+8. **Documentation and Reporting (30 minutes)**
    - Document any issues found
    - Create summary statistics for feature quality
    - Generate reference visualizations of key features
+   - Document any differences between local and Docker runs
 
 ## Testing Output Artifacts
 
