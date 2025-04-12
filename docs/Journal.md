@@ -17,19 +17,21 @@ We've revised our testing strategy to focus on:
 - [x] Verify ViennaRNA installation
 - [x] Check directory structure and permissions
 - [x] Update testing plans for streamlined goals
-- [ ] Create verification script for data loader compatibility
-- [ ] **Docker Verification**: Build and test Docker image to ensure all dependencies are correctly installed
+- [x] Create verification script for data loader compatibility
+- [x] **Docker Verification**: Build and test Docker image to ensure all dependencies are correctly installed
   ```bash
   docker build -t rna3d-extractor .
   docker run --rm rna3d-extractor micromamba run -n rna3d-core python -c "import RNA; print(f'ViennaRNA version: {RNA.__version__}')"
   ```
 
 ### 2. Single Target Testing (40 minutes)
+- [x] Create script for single target testing (`scripts/single_target_test.py`)
 - [ ] Select one well-understood target
 - [ ] Run through all three notebooks with LIMIT=1
 - [ ] Validate all output files and naming patterns
 - [ ] Check feature consistency and quality
 - [ ] Verify compatibility with data loader requirements
+- [x] Create tool for Docker output comparison (`scripts/compare_docker_outputs.py`)
 - [ ] **Docker Verification**: Process the same target in Docker to compare outputs
   ```bash
   # Run same test in Docker environment
@@ -37,14 +39,15 @@ We've revised our testing strategy to focus on:
     -v $(pwd)/data/raw:/app/data/raw \
     -v $(pwd)/data/processed:/app/data/processed \
     --entrypoint /bin/bash \
-    -c "micromamba run -n rna3d-core python scripts/run_feature_extraction_single.sh TARGET_ID" \
+    -c "micromamba run -n rna3d-core python scripts/single_target_test.py --target R1107" \
     rna3d-extractor
   
   # Compare outputs between local and Docker runs
-  python scripts/compare_outputs.py data/processed/local data/processed/docker
+  python scripts/compare_docker_outputs.py data/processed data/processed_docker
   ```
 
 ### 3. Feature Format Validation (30 minutes)
+- [x] Create feature verification script (`scripts/verify_feature_compatibility.py`)
 - [ ] Verify file naming matches data loader expectations
 - [ ] Confirm directory structure is correct
 - [ ] Test feature loading with data loader functions
@@ -54,13 +57,13 @@ We've revised our testing strategy to focus on:
   docker run --rm \
     -v $(pwd)/data/processed:/app/data/processed \
     --entrypoint /bin/bash \
-    -c "micromamba run -n rna3d-core python verify_features.py /app/data/processed" \
+    -c "micromamba run -n rna3d-core python scripts/verify_feature_compatibility.py /app/data/processed" \
     rna3d-extractor
   ```
 
 ### 4. Resource Management (30 minutes)
-- [ ] Add memory monitoring to notebooks
-- [ ] Test with representative RNA lengths
+- [x] Add memory monitoring to notebooks
+- [x] Create tools for profiling different RNA lengths
 - [ ] Identify potential memory bottlenecks
 - [ ] Optimize for Kaggle's memory constraints
 - [ ] **Docker Verification**: Measure resource usage in constrained Docker environment
@@ -71,7 +74,7 @@ We've revised our testing strategy to focus on:
     -v $(pwd)/data/processed:/app/data/processed \
     --memory=8g --cpus=2 \
     --entrypoint /bin/bash \
-    -c "micromamba run -n rna3d-core python scripts/benchmark_memory.py" \
+    -c "micromamba run -n rna3d-core python scripts/single_target_test.py --target R1107" \
     rna3d-extractor
   ```
 
@@ -185,13 +188,68 @@ We've revised our testing strategy to focus on:
 *(Notes will be added as testing progresses)*
 
 ### Step 4: Resource Management
-*(Notes will be added as testing progresses)*
+**Initial implementation completed on:** April 12, 2025
+
+**Memory Monitoring System:**
+- Created comprehensive memory tracking module: `src/analysis/memory_monitor.py`
+- Implemented flexible tracking mechanisms:
+  - `log_memory_usage()` function for spot measurements
+  - `MemoryTracker` context manager for tracking code sections
+  - Decorator for monitoring specific functions
+- Added visualization capabilities for memory usage over time
+- Created profiling utility for different RNA sequence lengths
+
+**Notebook Integration:**
+- Updated training notebook with memory monitoring points
+- Added memory usage visualization cell 
+- Created RNA length profiling function to estimate memory requirements
+- Set up infrastructure for bottleneck identification
+
+**Next steps:**
+- Run profiling with various RNA lengths to establish memory scaling
+- Identify specific bottlenecks in the feature extraction process
+- Implement optimization strategies for large sequences (>1000nt)
+- Document memory requirements for Kaggle environment
 
 ### Step 5: Mini End-to-End Test
-*(Notes will be added as testing progresses)*
+**Infrastructure implementation completed on:** April 12, 2025
+
+**Single Target Testing:**
+- Created comprehensive end-to-end testing script: `scripts/single_target_test.py`
+- Implemented all three feature types extraction with memory tracking
+- Added error handling and detailed logging
+- Integrated feature validation steps
+
+**Docker Comparison:**
+- Created Docker output comparison utility: `scripts/compare_docker_outputs.py`
+- Implemented file existence checks and content validation
+- Set up detailed reporting of any differences
+
+**Next steps:**
+- Run actual tests with representative targets
+- Process sequences of various lengths to test scaling
+- Compare local and Docker outputs for consistency
+- Document results in testing journal
 
 ### Step 6: Documentation
-*(Notes will be added as testing progresses)*
+**Initial documentation added on:** April 12, 2025
+
+**Implementation Summary:**
+- Created summary document: `docs/implementation-summary.md`
+- Documented all new tools and usage instructions
+- Added detailed inline documentation to all scripts
+- Updated Journal with progress and next steps
+
+**Notebook Documentation:**
+- Added memory monitoring cells
+- Created profiling capabilities
+- Added verification cell for data loader compatibility
+
+**Next steps:**
+- Add detailed memory requirements based on profiling
+- Document optimization strategies for large sequences
+- Update implementation summary with test results
+- Create user guide for Kaggle submission
 
 ## Issues and Recommendations
 
@@ -263,18 +321,25 @@ For Kaggle submissions, memory optimization is critical:
    - Provide guidance on batch sizes for different RNA types
    - Include memory monitoring cells in notebooks
 
-### Next Actions
+### Progress Update - April 12, 2025
 
-1. **Immediate priorities**:
-   - Create feature verification script based on data loader requirements
-   - Add memory monitoring to notebooks
-   - Test with a single representative RNA sequence
-   - Verify feature format compatibility with data loader
-   - **Run dependency verification in Docker**
+We've made significant progress implementing key testing infrastructure:
 
-2. **Following steps**:
-   - Process mini dataset with different RNA lengths
-   - Optimize memory usage for large sequences
-   - Document resource requirements
-   - Prepare for Kaggle submission
-   - **Compare feature extraction consistency between local and Docker environments**
+1. **Completed tools**:
+   - Created feature verification script (`scripts/verify_feature_compatibility.py`)
+   - Added memory monitoring system (`src/analysis/memory_monitor.py`)
+   - Created single target testing script (`scripts/single_target_test.py`)
+   - Implemented Docker comparison utility (`scripts/compare_docker_outputs.py`)
+   - Added memory profiling to notebooks with visualization
+
+2. **Next actions**:
+   - Run single target test and verify outputs
+   - Process a mini dataset with different RNA lengths
+   - Identify and optimize memory bottlenecks for large sequences
+   - Document memory requirements for Kaggle
+   - Compare feature extraction consistency between local and Docker environments
+
+3. **Summary documentation**:
+   - Created implementation summary document with usage instructions
+   - Updated notebooks with memory monitoring capabilities
+   - Added detailed function documentation to all new scripts
