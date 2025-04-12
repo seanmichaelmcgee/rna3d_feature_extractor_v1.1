@@ -963,7 +963,7 @@ def calculate_positional_entropy(bpp_matrix):
             max_entropy = max(entropy) if entropy else 0.0
         
         return {
-            'positional_entropy': entropy,
+            'positional_entropy': entropy,  # Use standardized name
             'mean_entropy': mean_entropy,
             'max_entropy': max_entropy
         }
@@ -1131,12 +1131,12 @@ def extract_thermodynamic_features(sequence, include_graph_features=True, pf_sca
     # These are the keys expected by extract_features_simple.py
     required_features = {
         'mfe_structure': structure,                    # Structure in dot-bracket notation
-        'structure': structure,                        # Alias for mfe_structure
+        'structure': structure,                        # Alias for mfe_structure (standardized name)
         'prob_of_mfe': thermo_data.get('probability', 1.0), # Probability of MFE structure
         'mfe_probability': thermo_data.get('probability', 1.0), # Alias for prob_of_mfe
         'base_pair_probs': bpp_matrix,                # Base pair probability matrix
-        'pairing_probs': bpp_matrix,                  # Alias for base_pair_probs
-        'position_entropy': features.get('positional_entropy', np.zeros(len(sequence))), # Positional entropy
+        'pairing_probs': bpp_matrix,                  # Alias for base_pair_probs (standardized name)
+        'positional_entropy': features.get('positional_entropy', np.zeros(len(sequence))), # Positional entropy (standardized name)
         'raw_ensemble_energy': thermo_data.get('raw_ensemble_energy', thermo_data.get('ensemble_energy', 0.0)), # Raw ensemble energy
     }
     

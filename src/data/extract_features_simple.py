@@ -88,12 +88,12 @@ def extract_features(sequence, pf_scale=1.5):
     # Rename some keys for compatibility with downstream tools
     key_mapping = {
         'mfe': 'mfe',
-        'mfe_structure': 'structure',
+        'mfe_structure': 'structure',  # standardized name
         'ensemble_energy': 'ensemble_energy',
         'raw_ensemble_energy': 'raw_ensemble_energy',  # Include raw ensemble energy
         'mfe_probability': 'prob_of_mfe',
-        'positional_entropy': 'position_entropy',
-        'base_pair_probs': 'pairing_probs'
+        'position_entropy': 'positional_entropy',  # use standardized name
+        'base_pair_probs': 'pairing_probs'  # standardized name
     }
     
     for new_key, old_key in key_mapping.items():
@@ -102,16 +102,16 @@ def extract_features(sequence, pf_scale=1.5):
     
     # Ensure all expected keys exist
     required_keys = ['mfe', 'structure', 'ensemble_energy', 'raw_ensemble_energy', 'prob_of_mfe', 
-                     'position_entropy', 'pairing_probs']
+                     'positional_entropy', 'pairing_probs']  # Use standardized names
     
     for key in required_keys:
         if key not in features:
             print(f"Warning: Missing expected feature '{key}'. Adding placeholder.")
-            if key in ['position_entropy']:
+            if key in ['positional_entropy']:  # Use standardized name
                 features[key] = np.zeros(len(sequence))
-            elif key in ['pairing_probs']:
+            elif key in ['pairing_probs']:  # Use standardized name
                 features[key] = np.zeros((len(sequence), len(sequence)))
-            elif key in ['structure']:
+            elif key in ['structure']:  # Use standardized name
                 features[key] = '.' * len(sequence)
             elif key in ['prob_of_mfe']:
                 features[key] = 1.0
@@ -154,6 +154,42 @@ def extract_features(sequence, pf_scale=1.5):
     
     print(f"Extracted {len(features)} features")
     return features
+
+def validate_features(features, sequence_length):
+    """
+    Validate features against expected formats and dimensions.
+    
+    Args:
+        features: Dictionary of extracted features
+        sequence_length: Expected sequence length for validation
+        
+    Returns:
+        Boolean indicating if features are valid
+    """
+    import warnings
+    
+    # Check thermodynamic features
+    if 'positional_entropy' not in features:
+        warnings.warn("Missing required feature: positional_entropy")
+        return False
+        
+    if 'pairing_probs' not in features:
+        warnings.warn("Missing required feature: pairing_probs")
+        return False
+    
+    # Check evolutionary features (if applicable)
+    if 'coupling_matrix' in features:
+        if features['coupling_matrix'].shape != (sequence_length, sequence_length):
+            warnings.warn(f"coupling_matrix has incorrect shape: {features['coupling_matrix'].shape}, expected ({sequence_length}, {sequence_length})")
+            return False
+    
+    # Check dihedral features (if applicable)
+    if 'dihedral' in features and 'features' in features['dihedral']:
+        if features['dihedral']['features'].shape[0] != sequence_length:
+            warnings.warn(f"dihedral features has incorrect first dimension: {features['dihedral']['features'].shape}, expected first dim {sequence_length}")
+            return False
+            
+    return True
 
 def save_features_npz(features, output_file):
     """
@@ -236,6 +272,11 @@ def process_sequence(seq_id, sequence, output_dir, verbose=False, pf_scale=1.5):
     try:
         # Extract features using the core module
         features = extract_features(sequence, pf_scale=pf_scale)
+        
+        # Validate features before saving
+        is_valid = validate_features(features, len(sequence))
+        if not is_valid and verbose:
+            print(f"Warning: Features validation failed for {seq_id}")
         
         # Save to NPZ file
         save_success = save_features_npz(features, output_file)

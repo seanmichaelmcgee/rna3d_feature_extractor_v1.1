@@ -179,6 +179,7 @@ def chunk_and_analyze_rna(msa_sequences, max_length=750, chunk_size=600, overlap
     result = {
         'mi_matrix': full_matrix,
         'scores': final_matrix,  # Use the final APC-corrected matrix
+        'coupling_matrix': final_matrix,  # Add standardized name
         'apc_matrix': final_matrix,
         'top_pairs': top_pairs,
         'method': 'mutual_information_chunked',
@@ -710,6 +711,7 @@ def calculate_mutual_information_enhanced(msa_sequences, weights=None,
         'mi_matrix': mi_matrix,
         'apc_matrix': apc_matrix,
         'scores': apc_matrix,  # Use APC-corrected scores
+        'coupling_matrix': apc_matrix,  # Add standardized name
         'method': 'mutual_information_enhanced'
     }
     

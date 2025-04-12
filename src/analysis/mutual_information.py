@@ -30,6 +30,7 @@ def calculate_mutual_information(msa_sequences, verbose=False):
     dict
         Dictionary containing:
         - 'scores': numpy array of shape (seq_len, seq_len) with MI scores
+        - 'coupling_matrix': numpy array of shape (seq_len, seq_len) with MI scores (standardized name)
         - 'method': 'mutual_information'
         - 'top_pairs': list of (i, j, score) tuples for top scoring pairs
     """
@@ -117,8 +118,10 @@ def calculate_mutual_information(msa_sequences, verbose=False):
         print(f"Top MI score: {top_pairs[0][2] if top_pairs else 0}")
     
     # Return the same structure as expected from DCA methods
+    # Include coupling_matrix as a standardized name for the MI matrix
     return {
         'scores': mi_matrix,
+        'coupling_matrix': mi_matrix,  # Add standardized name
         'method': 'mutual_information',
         'top_pairs': top_pairs,
         'calculation_time': time.time() - start_time if verbose else None
