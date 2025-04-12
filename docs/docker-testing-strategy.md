@@ -1,24 +1,10 @@
-# Docker Integration and Testing Strategy for RNA 3D Feature Extraction
+# Streamlined Docker Testing Plan for RNA Feature Extraction
 
-## Introduction
+## Overview
 
-This document outlines the approach for integrating Docker into our RNA 3D Feature Extraction workflow. Instead of making a hard switch to Docker, we're adopting a gradual integration strategy that allows us to:
+This streamlined Docker testing plan focuses on creating a reliable containerized environment for RNA feature extraction that can be used for development and potentially for scaling beyond Kaggle. While Docker isn't directly used in Kaggle, it provides a controlled environment for testing and can serve as foundation for future scaling.
 
-1. Continue using our functioning Mamba environment for primary development
-2. Iteratively test and improve our Docker setup in parallel
-3. Ensure reproducibility and environment consistency across all stages
-
-This hybrid approach minimizes disruption while building confidence in our containerized workflow.
-
-## Docker Setup
-
-### Prerequisites
-
-- Docker installed on your development machine
-- Basic familiarity with Docker commands
-- Access to the RNA 3D Feature Extraction repository
-
-### Dockerfile
+## 1. Simplified Dockerfile
 
 ```dockerfile
 FROM mambaorg/micromamba:latest
@@ -26,7 +12,7 @@ FROM mambaorg/micromamba:latest
 # Set working directory
 WORKDIR /app
 
-# Copy environment file first for better caching
+# Copy environment file for better caching
 COPY environment.yml .
 
 # Create environment using mamba (faster than conda)
@@ -36,9 +22,6 @@ RUN micromamba env create -f environment.yml && \
 # Set path to include the environment
 ENV PATH /opt/conda/envs/rna3d-core/bin:$PATH
 
-# Activate environment for subsequent commands
-SHELL ["micromamba", "run", "-n", "rna3d-core", "/bin/bash", "-c"]
-
 # Copy project files
 COPY . .
 
@@ -46,7 +29,7 @@ COPY . .
 RUN chmod +x scripts/*.sh scripts/*.py
 
 # Create volume mount points for data
-VOLUME ["/app/data/raw", "/app/data/processed"]
+VOLUME ["/app/data/raw", "/app/data/processed", "/app/logs"]
 
 # Set default parameters
 ENV JOBS=1
@@ -56,30 +39,148 @@ ENV PF_SCALE=1.5
 ENTRYPOINT ["/bin/bash", "-c", "micromamba run -n rna3d-core ./scripts/run_feature_extraction_single.sh ${JOBS} ${PF_SCALE}"]
 ```
 
-### Building the Docker Image
+## 2. Essential Docker Tests
+
+### Basic Environment Validation
+
+Test that the container can be built and has all required dependencies:
 
 ```bash
-# Navigate to project root directory
-cd rna3d-feature-extractor
-
 # Build the Docker image
 docker build -t rna3d-extractor .
+
+# Verify environment
+docker run --rm -it --entrypoint /bin/bash rna3d-extractor -c \
+  "micromamba run -n rna3d-core python -c \"import RNA; print(f'ViennaRNA version: {RNA.__version__}')\""
 ```
 
-### Running the Container
+### Core Functionality Tests
 
-Basic usage with default parameters:
+Test that the container can process a simple RNA sequence:
 
 ```bash
+# Create directories for test data
+mkdir -p test_data/mini
+mkdir -p output_test
+
+# Copy a small test file to test_data/mini
+cp data/raw/sample_small.fasta test_data/mini/
+
+# Run the container with the test data
+docker run --rm \
+  -v $(pwd)/test_data/mini:/app/data/raw \
+  -v $(pwd)/output_test:/app/data/processed \
+  rna3d-extractor
+  
+# Verify output files were created
+ls -la output_test
+```
+
+### Memory and Performance Test
+
+Test resource usage with different parameter settings:
+
+```bash
+# Monitor resource usage during processing
+docker run --rm \
+  -v $(pwd)/test_data/mini:/app/data/raw \
+  -v $(pwd)/output_test:/app/data/processed \
+  --memory=4g --cpus=2 \
+  rna3d-extractor
+
+# In another terminal while processing
+docker stats
+```
+
+## 3. Development Workflow Testing
+
+### Interactive Development in Container
+
+Test the container for interactive development:
+
+```bash
+# Run container interactively 
+docker run --rm -it \
+  -v $(pwd):/app \
+  -v $(pwd)/test_data/mini:/app/data/raw \
+  -v $(pwd)/output_test:/app/data/processed \
+  --entrypoint /bin/bash \
+  rna3d-extractor
+
+# Inside container
+micromamba run -n rna3d-core python -m unittest tests.analysis.test_thermodynamic_analysis
+```
+
+### Local vs. Docker Results Comparison
+
+Verify that results are consistent between local and Docker environments:
+
+```bash
+# Run locally
+mamba activate rna3d-core
+python scripts/run_feature_extraction_single.sh 1 1.5
+
+# Run in Docker
+docker run --rm \
+  -v $(pwd)/test_data/mini:/app/data/raw \
+  -v $(pwd)/output_test:/app/data/processed \
+  rna3d-extractor
+
+# Compare outputs
+python scripts/compare_outputs.py data/processed/features_test output_test
+```
+
+## 4. Potential Scaling Tests
+
+While not immediately needed for Kaggle, these tests prepare for future scaling:
+
+### Batch Processing
+
+```bash
+# Test batch processing with multiple sequences
+docker run --rm \
+  -v $(pwd)/test_data/batch:/app/data/raw \
+  -v $(pwd)/output_test:/app/data/processed \
+  -e JOBS=4 \
+  --entrypoint /bin/bash \
+  -c "micromamba run -n rna3d-core python src/data/batch_feature_runner.py --csv data/raw/sequences.csv --limit 10" \
+  rna3d-extractor
+```
+
+### Resource Constraints Testing
+
+```bash
+# Test with limited memory and CPU
+docker run --rm \
+  -v $(pwd)/test_data/batch:/app/data/raw \
+  -v $(pwd)/output_test:/app/data/processed \
+  --memory=2g --cpus=1 \
+  -e JOBS=2 \
+  rna3d-extractor
+```
+
+## 5. Practical Docker Usage Guide
+
+### Build the Container
+
+```bash
+# Basic build
+docker build -t rna3d-extractor .
+
+# Build with no cache for clean install
+docker build --no-cache -t rna3d-extractor .
+```
+
+### Run the Container
+
+```bash
+# Run with default parameters
 docker run --rm \
   -v $(pwd)/data/raw:/app/data/raw \
   -v $(pwd)/data/processed:/app/data/processed \
   rna3d-extractor
-```
 
-Advanced usage with custom parameters:
-
-```bash
+# Run with custom parameters
 docker run --rm \
   -v $(pwd)/data/raw:/app/data/raw \
   -v $(pwd)/data/processed:/app/data/processed \
@@ -87,269 +188,178 @@ docker run --rm \
   rna3d-extractor
 ```
 
-For interactive exploration:
+### Interactive Mode
 
 ```bash
+# Start interactive session
 docker run --rm -it \
   -v $(pwd)/data/raw:/app/data/raw \
   -v $(pwd)/data/processed:/app/data/processed \
   --entrypoint /bin/bash \
   rna3d-extractor
+
+# Inside container, run commands with the environment activated
+micromamba run -n rna3d-core python scripts/example.py
 ```
 
-## Progressive Testing Strategy
+## 6. Common Issues and Solutions
 
-### Phase 1: Initial Validation
+### Memory Issues
 
-**Frequency**: Once after initial Dockerfile creation and after major dependencies change
-
-**Purpose**: Verify basic environment setup and functionality
-
-**Testing Steps**:
-
-1. Build the Docker image
-   ```bash
-   docker build -t rna3d-extractor .
-   ```
-
-2. Run a minimal test (process 1-2 small sequences)
-   ```bash
-   docker run --rm \
-     -v $(pwd)/data/raw:/app/data/raw \
-     -v $(pwd)/data/processed:/app/data/processed \
-     -e JOBS=1 -e PF_SCALE=1.5 \
-     rna3d-extractor
-   ```
-
-3. Verify ViennaRNA and key dependencies are working
-   ```bash
-   docker run --rm -it --entrypoint /bin/bash rna3d-extractor
-   
-   # Inside container
-   micromamba run -n rna3d-core python -c "import RNA; print(f'ViennaRNA version: {RNA.__version__}')"
-   ```
-
-4. Compare results with local Mamba environment results
-   - Check output files in `data/processed/features_test/`
-   - Verify format and values match between Docker and local runs
-
-### Phase 2: Component Testing
-
-**Frequency**: Biweekly or when adding new features/modules
-
-**Purpose**: Ensure specific components work correctly in Docker
-
-**Testing Steps**:
-
-1. Test thermodynamic analysis module
-   ```bash
-   docker run --rm -it --entrypoint /bin/bash rna3d-extractor
-   
-   # Inside container
-   micromamba run -n rna3d-core python -m unittest tests.analysis.test_thermodynamic_analysis
-   ```
-
-2. Test dihedral analysis
-   ```bash
-   docker run --rm -it --entrypoint /bin/bash rna3d-extractor
-   
-   # Inside container
-   micromamba run -n rna3d-core ./scripts/run_dihedral_extraction.sh --target 1A1T_B
-   ```
-
-3. Test mutual information pipeline
-   ```bash
-   docker run --rm -it --entrypoint /bin/bash rna3d-extractor
-   
-   # Inside container
-   micromamba run -n rna3d-core python src/analysis/rna_mi_pipeline/rna_mi_pipeline.py --help
-   ```
-
-### Phase 3: Integration Testing
-
-**Frequency**: Monthly or before significant milestones
-
-**Purpose**: Test end-to-end workflows and integration points
-
-**Testing Steps**:
-
-1. Full batch processing test
-   ```bash
-   docker run --rm \
-     -v $(pwd)/data/raw:/app/data/raw \
-     -v $(pwd)/data/processed:/app/data/processed \
-     -e JOBS=4 -e PF_SCALE=1.5 \
-     --entrypoint /bin/bash \
-     -c "micromamba run -n rna3d-core python src/data/batch_feature_runner.py --csv data/raw/train_sequences.csv --limit 10" \
-     rna3d-extractor
-   ```
-
-2. Test notebook execution (use container for processing, jupyter for visualization)
-   ```bash
-   # Extract features using Docker
-   docker run --rm \
-     -v $(pwd)/data/raw:/app/data/raw \
-     -v $(pwd)/data/processed:/app/data/processed \
-     --entrypoint /bin/bash \
-     -c "micromamba run -n rna3d-core python -m jupyter nbconvert --to notebook --execute notebooks/test_features_extraction.ipynb" \
-     rna3d-extractor
-   ```
-
-3. Test multi-feature pipeline
-   ```bash
-   docker run --rm \
-     -v $(pwd)/data/raw:/app/data/raw \
-     -v $(pwd)/data/processed:/app/data/processed \
-     --entrypoint /bin/bash \
-     -c "micromamba run -n rna3d-core ./scripts/run_feature_extraction_single.sh 2 1.5" \
-     rna3d-extractor
-   ```
-
-### Phase 4: Extended Testing
-
-**Frequency**: Prior to major releases or deployments
-
-**Purpose**: Validate performance, resource usage, and robustness
-
-**Testing Steps**:
-
-1. Performance testing with larger datasets
-   ```bash
-   time docker run --rm \
-     -v $(pwd)/data/raw:/app/data/raw \
-     -v $(pwd)/data/processed:/app/data/processed \
-     -e JOBS=8 -e PF_SCALE=1.5 \
-     rna3d-extractor
-   ```
-
-2. Resource utilization monitoring
-   ```bash
-   # In another terminal while tests are running
-   docker stats $(docker ps -q)
-   ```
-
-3. Error handling and robustness testing
-   ```bash
-   # Test with invalid inputs
-   docker run --rm \
-     -v $(pwd)/test_data/invalid:/app/data/raw \
-     -v $(pwd)/data/processed:/app/data/processed \
-     rna3d-extractor
-   ```
-
-## Integration with Development Workflow
-
-### When to Use Docker vs. Local Environment
-
-| Activity | Recommended Environment | Reason |
-|----------|-------------------------|--------|
-| Day-to-day development | 🟢 **Local Mamba** | Faster iteration, familiar setup |
-| Initial testing of new features | 🟢 **Local Mamba** | Quicker debugging |
-| Verification of features | 🟡 **Both** | Ensure consistency across environments |
-| Integration testing | 🔵 **Docker** | Tests in isolated environment |
-| Performance testing | 🔵 **Docker** | Standardized resources |
-| CI/CD pipeline | 🔵 **Docker** | Reproducible builds |
-| Production deployment | 🔵 **Docker** | Consistent runtime |
-
-### Data Management Strategies
-
-1. **Development Data**
-   - Keep a small, representative dataset in the repository for quick testing
-   - Mount larger datasets from host when needed
-
-2. **Test Data**
-   - Include minimal test data in the repository
-   - Document how to generate or obtain larger test datasets
-
-3. **Production Data**
-   - Never include in Docker image
-   - Always mount as volumes
-
-### Version Control Integration
-
-Include the Dockerfile and this strategy document in version control:
-
-```bash
-git add Dockerfile docker-testing-strategy.md
-git commit -m "Add Docker integration and testing strategy"
-```
-
-Update the Dockerfile when dependencies change:
-
-```bash
-git diff environment.yml
-# If changes affect dependencies
-git add Dockerfile environment.yml
-git commit -m "Update environment and Dockerfile for new dependencies"
-```
-
-## Troubleshooting Common Issues
-
-### Build Failures
-
-Problem: Docker build fails due to dependency issues
+Problem: Container runs out of memory with large sequences
 
 Solution:
 ```bash
-# Check if environment builds locally first
-mamba env create -f environment.yml
-# If successful, try building with the --no-cache flag
-docker build --no-cache -t rna3d-extractor .
-```
-
-### Runtime Errors
-
-Problem: Container exits immediately or shows segmentation faults
-
-Solution:
-```bash
-# Run with increased verbosity
+# Increase container memory allocation
 docker run --rm \
   -v $(pwd)/data/raw:/app/data/raw \
   -v $(pwd)/data/processed:/app/data/processed \
-  -e VERBOSE=1 \
+  --memory=8g \
   rna3d-extractor
-
-# Or try interactive debugging
-docker run --rm -it --entrypoint /bin/bash rna3d-extractor
-# Then run commands manually to pinpoint the issue
 ```
 
-### Volume Mounting Issues
+### Permission Issues
 
-Problem: Container can't access data or permission errors
+Problem: Unable to write to mounted volumes
 
-Solution:
+Solution
 ```bash
-# Check permissions
+# Check directory permissions
 ls -la data/raw data/processed
-# Ensure directories exist and have proper permissions
-mkdir -p data/raw data/processed
+
+# Ensure directories have proper permissions
 chmod 777 data/raw data/processed
 ```
 
-## Best Practices
+### Dependency Issues
 
-1. **Keep Docker and Local Environment in Sync**
-   - Update environment.yml first, then rebuild Docker
-   - Document any manual steps needed beyond the Dockerfile
+Problem: Missing dependencies or conflicts
 
-2. **Progressive Testing**
-   - Start small (single file/target)
-   - Scale up gradually
-   - Automate testing when possible
+Solution:
+```bash
+# Check environment inside container
+docker run --rm -it --entrypoint /bin/bash rna3d-extractor -c \
+  "micromamba run -n rna3d-core pip list"
 
-3. **Resource Management**
-   - Set appropriate JOBS parameter based on host resources
-   - Monitor memory usage for large datasets
-   - Consider using a swarm or Kubernetes for distributed processing
+# Update environment.yml and rebuild
+docker build --no-cache -t rna3d-extractor .
+```
 
-4. **Documentation**
-   - Document deviations between Docker and local behavior
-   - Keep a log of successful Docker test runs
+## 7. Integration with Development Workflow
+
+For most effective development:
+
+1. Use local environment for rapid iteration and testing
+2. Use Docker to verify changes in a clean environment
+3. Keep Docker testing focused on critical paths for efficiency
+4. Version Docker images alongside code changes
+
+
+# 8.  Create a simple script to verify feature compatibility
+cat > verify_features.py << EOF
+#!/usr/bin/env python3
+import os
+import sys
+import numpy as np
+
+def verify_feature_structure(features_dir):
+    """Verify features match expected structure for data loader."""
+    # Check directory structure
+    required_dirs = ['dihedral_features', 'thermo_features', 'mi_features']
+    for d in required_dirs:
+        if not os.path.isdir(os.path.join(features_dir, d)):
+            print(f"ERROR: Required directory {d} not found")
+            return False
+    
+    # Find a sample target
+    sample_targets = []
+    for file in os.listdir(os.path.join(features_dir, 'thermo_features')):
+        if file.endswith('_thermo_features.npz'):
+            sample_targets.append(file.replace('_thermo_features.npz', ''))
+    
+    if not sample_targets:
+        print("ERROR: No feature files found to test")
+        return False
+    
+    target_id = sample_targets[0]
+    print(f"Verifying features for {target_id}")
+    
+    # Check file naming and feature structure
+    thermo_path = os.path.join(features_dir, 'thermo_features', f"{target_id}_thermo_features.npz")
+    dihedral_path = os.path.join(features_dir, 'dihedral_features', f"{target_id}_dihedral_features.npz")
+    mi_path = os.path.join(features_dir, 'mi_features', f"{target_id}_features.npz")
+    
+    # Verify thermodynamic features
+    if os.path.exists(thermo_path):
+        with np.load(thermo_path) as data:
+            # Check for required keys
+            if not ('pairing_probs' in data or 'base_pair_probs' in data):
+                print("ERROR: Missing pairing_probs/base_pair_probs in thermo features")
+                return False
+            if not ('positional_entropy' in data or 'position_entropy' in data):
+                print("WARNING: Missing positional_entropy in thermo features")
+            
+            # Check shapes
+            key = 'pairing_probs' if 'pairing_probs' in data else 'base_pair_probs'
+            shape = data[key].shape
+            if len(shape) != 2 or shape[0] != shape[1]:
+                print(f"ERROR: Invalid shape for {key}: {shape}")
+                return False
+            
+            print(f"Thermo features: OK, sequence length = {shape[0]}")
+    else:
+        print(f"WARNING: No thermo features found for {target_id}")
+    
+    # Verify dihedral features
+    if os.path.exists(dihedral_path):
+        with np.load(dihedral_path) as data:
+            if 'features' not in data:
+                print("ERROR: Missing 'features' key in dihedral features")
+                return False
+            
+            shape = data['features'].shape
+            if len(shape) != 2 or shape[1] != 4:
+                print(f"ERROR: Invalid shape for dihedral features: {shape}")
+                return False
+            
+            print(f"Dihedral features: OK, shape = {shape}")
+    
+    # Verify MI features
+    if os.path.exists(mi_path):
+        with np.load(mi_path) as data:
+            if 'coupling_matrix' not in data and 'scores' not in data:
+                print("ERROR: Missing coupling_matrix/scores in MI features")
+                return False
+            
+            key = 'coupling_matrix' if 'coupling_matrix' in data else 'scores'
+            shape = data[key].shape
+            if len(shape) != 2 or shape[0] != shape[1]:
+                print(f"ERROR: Invalid shape for {key}: {shape}")
+                return False
+            
+            print(f"MI features: OK, shape = {shape}")
+    
+    print("All features appear compatible with data loader requirements")
+    return True
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: verify_features.py <features_dir>")
+        sys.exit(1)
+    
+    features_dir = sys.argv[1]
+    if not verify_feature_structure(features_dir):
+        sys.exit(1)
+EOF
+
+# Run verification in Docker
+docker run --rm \
+  -v $(pwd)/data/processed:/app/data/processed \
+  --entrypoint /bin/bash \
+  -c "micromamba run -n rna3d-core python verify_features.py /app/data/processed" \
+  rna3d-extractor
 
 ## Conclusion
 
-This progressive Docker integration strategy allows us to maintain development velocity while building confidence in our containerized workflow. By following this approach, we can ensure that our RNA 3D Feature Extraction pipeline works consistently across different environments and is ready for eventual deployment or distribution.
+This streamlined Docker testing approach provides the essential verification needed for the RNA feature extraction pipeline while setting the foundation for future scaling. By focusing on core functionality, resource usage, and practical development workflows, it enables efficient development while ensuring compatibility with both local and containerized environments.
 
-For questions or issues with this Docker strategy, please file an issue in the repository.

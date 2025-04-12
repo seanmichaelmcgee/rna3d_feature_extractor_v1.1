@@ -1,224 +1,223 @@
-# RNA Feature Extraction: Comprehensive Testing Plan
+# Streamlined RNA Feature Extraction Testing Plan for Kaggle
 
-## 1. Setup and Environment Preparation
+## Overview
 
-### Mamba Environment Activation
+This testing plan focuses on ensuring our RNA feature extraction pipeline works reliably on Kaggle while setting the foundation for future scalability. The emphasis is on verification of core functionality, resource efficiency, and compatibility with Kaggle's constraints.
+
+## 1. Environment Setup and Validation
+
+### Mamba Environment Testing
 ```bash
-# First activate Mamba shell
-source ~/mambaforge/etc/profile.d/conda.sh
-# Then activate the project environment
+# Activate environment
 mamba activate rna3d-core
-# Verify environment activation
+
+# Verify ViennaRNA installation
 python -c "import RNA; print(f'ViennaRNA version: {RNA.__version__}')"
+
+# Verify other critical dependencies
+python -c "import numpy; import pandas; print('Core dependencies available')"
 ```
 
-### Docker Environment Validation
-```bash
-# Build the Docker image
-docker build -t rna3d-extractor .
+### Kaggle Environment Compatibility
+- Verify all dependencies are available in Kaggle notebooks
+- Identify any packages that need to be installed via pip
+- Create a setup cell for the notebook that installs missing dependencies
 
-# Verify ViennaRNA in Docker container
-docker run --rm -it --entrypoint /bin/bash rna3d-extractor -c "micromamba run -n rna3d-core python -c \"import RNA; print(f'ViennaRNA version: {RNA.__version__}')\""
+## 2. Core Functionality Testing
+
+### Thermodynamic Feature Extraction
+- Test with a small RNA sequence (50-100nt)
+- Verify MFE calculation works correctly
+- Confirm base-pair probability matrix is generated
+- Check positional entropy calculation
+
+### Dihedral Feature Extraction
+- Test with a small RNA structure
+- Verify proper coordinate parsing
+- Confirm angle calculations are correct
+
+### Mutual Information Feature Extraction
+- Test with a small MSA file
+- Verify calculation works with limited sequences
+- Test chunk processing for sequences > 750nt
+
+## 3. Resource Management Testing
+
+### Memory Usage Assessment
+- Monitor memory usage during feature extraction
+- Identify memory bottlenecks
+- Implement memory optimization strategies for large sequences
+```python
+# Memory usage tracking
+import psutil
+def log_memory_usage(label="Current memory"):
+    process = psutil.Process()
+    memory_info = process.memory_info()
+    memory_gb = memory_info.rss / (1024 * 1024 * 1024)
+    print(f"{label}: {memory_gb:.2f} GB")
+
+# Use at key points in processing
+log_memory_usage("Before MI calculation")
+# ... feature calculation ...
+log_memory_usage("After MI calculation")
 ```
 
-### Data Verification
-- Verify raw data directories contain expected files
-- Confirm existence of train/validation/test files
-- Check MSA files in data/raw/MSA/ directory
-- Verify target data completeness (3D structure, sequence, MSA)
+### Runtime Performance
+- Measure processing time for different sequence lengths
+- Ensure extraction completes within Kaggle time limits
+- Optimize critical path functions
 
-### Output Directory Preparation
-- Ensure data/processed/ subdirectories exist for feature outputs
-- Create consistent directory structure across notebooks
-- Verify write permissions for Docker volume mounts
+```python
+import time
 
-### ViennaRNA Version Check
-- Verify ViennaRNA installation and version compatibility
-- Confirm version 2.6.4 as specified in environment.yml
-- Check proper initialization message from thermodynamic_analysis.py
-- Ensure versions match between local and Docker environments
+def time_function(func, *args, **kwargs):
+    start = time.time()
+    result = func(*args, **kwargs)
+    elapsed = time.time() - start
+    print(f"{func.__name__} completed in {elapsed:.2f} seconds")
+    return result, elapsed
 
-## 2. File Naming and Output Structure Verification
+# Use for performance-critical functions
+features, elapsed = time_function(extract_thermodynamic_features, sequence)
+```
 
-### Output Consistency Check
-- Verify each notebook produces consistently named outputs
-- Ensure file naming follows pattern: `{target_id}_{feature_type}_features.npz`
-- Confirm directory structure matches feature type:
-  ```
-  data/processed/thermo_features/{target_id}_thermo_features.npz
-  data/processed/dihedral_features/{target_id}_dihedral_features.npz
-  data/processed/mi_features/{target_id}_mi_features.npz
-  ```
-- Check that summary JSON files contain consistent metadata fields
+## 4. Error Handling Verification
 
-### Cross-Notebook Compatibility
-- Test loading features from one notebook into another
-- Verify key feature names and shapes are consistent across notebooks
-- Test npz_to_csv.py utility with outputs from all notebooks
+### Input Data Edge Cases
+- Test with sequences containing non-standard nucleotides
+- Verify proper handling of missing/incomplete data
+- Test with extremely short and long sequences
 
-## 3. Feature-Specific Testing
+### Graceful Failure Modes
+- Ensure informative error messages
+- Verify cleanup of temporary files on errors
+- Test recovery from partial processing
 
-### Thermodynamic Features Validation
-- Verify thermodynamic consistency check implementation
-- Run explicit tests with `--validate-thermo` flag
-- Check constraints: ensemble energy ≥ MFE
-- Verify proper scaling with pf_scale parameter for longer sequences
-- Test BPP matrix visualization for pattern validation
+## 5. Kaggle-Specific Verification
 
-### MSA Quality Assessment
-- Measure alignment depth (number of sequences)
-- Calculate sequence diversity metrics
-- Check for critical gaps in alignments
-- Verify conservation pattern matches structural expectations
-- Log statistics in JSON format for quality review
+### Notebook Integration
+- Test feature extraction functions as part of a Kaggle notebook
+- Verify proper cell execution order
+- Ensure notebook runs without user intervention
 
-### Dihedral Features Verification
-- Validate coordinate parsing from different file formats
-- Verify proper handling of input structural coordinates
-- Test pseudo-dihedral angle calculation with known structures
-- Compare with reference structures from PDB
+### Output Reliability
+- Verify output files are correctly saved in Kaggle environment
+- Confirm feature formats match downstream model requirements
+- Test loading extracted features back into models
 
-### Mutual Information Feature Validation
-- Verify column-wise conservation and covariation
-- Test correlation with known structural contacts
-- Check for statistical significance of top pairs
-- Validate performance with varying MSA depths (few vs. many sequences)
-- Test chunking functionality for sequences > 750 nucleotides
-- Verify MSA quality assessment and sequence weighting
-- Test memory optimization with large MSAs
-- Validate different configuration profiles (limited_resources, standard_workstation, high_performance)
-- Test proper recombination of MI matrices from overlapping chunks
-- Verify RNA-specific APC correction enhances signal-to-noise ratio
+### Resource Monitoring in Notebook
+```python
+# Add to notebook for tracking resources
+from IPython.display import display, clear_output
+import time
+import psutil
 
-## 4. CLI Script Testing
+def monitor_resources(interval=30, duration=None):
+    start_time = time.time()
+    try:
+        while True:
+            process = psutil.Process()
+            memory_info = process.memory_info()
+            memory_gb = memory_info.rss / (1024 * 1024 * 1024)
+            
+            clear_output(wait=True)
+            print(f"Time elapsed: {time.time() - start_time:.1f}s")
+            print(f"Memory usage: {memory_gb:.2f} GB")
+            print(f"CPU usage: {process.cpu_percent(interval=0.1)}%")
+            
+            # Check if duration limit reached
+            if duration and (time.time() - start_time) > duration:
+                break
+                
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        pass
 
-### Script Feature Extraction
-- Test individual script execution:
-  ```
-  python scripts/run_feature_extraction_single.sh target_id
-  ```
-- Test batch processing with run_mi_batch.sh
-- Verify dihedral extraction with extract_pseudodihedral_features.py
-- Test different flag combinations (e.g., --verbose, --pf-scale)
+# Use in notebook for monitoring
+# monitor_thread = threading.Thread(target=monitor_resources)
+# monitor_thread.daemon = True
+# monitor_thread.start()
+```
 
-### CLI Parameter Testing
-- Test with varying batch sizes
-- Test with different output formats
-- Test error handling with invalid inputs
-- Verify proper logging and progress tracking
+## 6. Mini End-to-End Test
 
-### Pipeline Integration
-- Test end-to-end workflow with all scripts
-- Verify proper error handling and output organization
-- Test resuming functionality with checkpoint files
+### Test Dataset Processing
+- Create a small representative dataset (5-10 sequences)
+- Process through entire pipeline
+- Verify all feature types are correctly generated
 
-## 5. Testing Approach - Incremental Validation
+### Validation Against Known Values
+- Compare feature outputs to expected values for well-studied RNAs
+- Verify thermodynamic consistency (ensemble energy ≥ MFE)
+- Check structural features match known patterns
 
-### Initial Limited Dataset Testing
-1. Set LIMIT=2 in each notebook
-2. Run notebooks in sequence with a small, well-understood dataset
-3. Verify all features are extracted correctly
+## 7. Documentation for Kaggle
 
-### Feature Type Validation
-1. **Thermodynamic Features:**
-   - Verify MFE, structure, entropy values
-   - Check pairing matrices for structural consistency
-   - Visualize RNA structure and positional entropy
+### Notebook Documentation
+- Add detailed comments in notebook cells
+- Include resource usage expectations
+- Document any limitations or constraints
 
-2. **Dihedral Features:**
-   - Verify proper pseudodihedral angle calculation
-   - Validate sine/cosine transformations
-   - Verify 3D coordinate loading from different file formats
+### Feature Documentation
+- Document feature formats and dimensions
+- Explain biological significance of features
+- Provide visualization examples for verification
 
-3. **Mutual Information Features:**
-   - Verify MSA loading and alignment quality
-   - Check MI matrix dimensions match sequence length
-   - Validate top pairs with known structural contacts
-   - Cross-reference with 3D distances (validation data only)
-   - Test chunking functionality for sequences > 750 nucleotides
-   - Verify sequence weighting reduces redundancy bias
-   - Test RNA-specific APC correction implementation
-   - Validate parameter optimization for different RNA lengths
-   - Test memory usage monitoring with large MSAs
-   - Compare enhanced MI output with basic implementation
+## Implementation Checklist
 
-### Cross-Dataset Validation
-- Compare feature distributions between train and validation sets
-- Ensure feature dimensions and structure are consistent
-- Verify compatibility with the test dataset
+This simplified checklist focuses on getting a working Kaggle submission with proper testing:
 
-## 6. Error Handling and Edge Cases
+- [ ] Verify environment setup works in Kaggle
+- [ ] Test core feature extraction on small examples
+- [ ] Measure and optimize memory usage
+- [ ] Handle edge cases and errors gracefully
+- [ ] Test with representative mini dataset
+- [ ] Document the notebook thoroughly
+- [ ] Verify end-to-end processing in Kaggle environment
 
-Test error handling with problematic inputs:
-- Very short sequences (<10 nucleotides)
-- Very long sequences (>2000 nucleotides)
-- Targets with limited MSA data
-- Targets with unusual structural properties
-- Missing target files
-- Incorrect file formats
+## Future Extension Points
 
-## 7. Execution Plan
+While not immediately necessary for Kaggle submission, these are marked for future development:
 
-1. **Environment Setup (20 minutes)**
-   - Activate mamba environment
-   - Verify ViennaRNA installation
-   - Build Docker image (Phase 1 Docker testing)
-   - Verify Docker environment setup
-   - Check directory structure and permissions
+- Create comprehensive golden test cases
+- Implement CI/CD integration
+- Develop randomized test data generation
+- Create containerized testing environment
+- Build regression testing framework
 
-2. **Single Target Testing (30 minutes)**
-   - Select one well-understood target
-   - Run through all three notebooks with LIMIT=1
-   - Validate all output files and naming patterns
-   - Check feature consistency and quality
-   - Run minimal Docker test with the same target
 
-3. **CLI Script Testing (30 minutes)**
-   - Test each script with a single target
-   - Verify outputs match notebook-generated files
-   - Test batch processing with 3-5 targets
-   - Run component tests in Docker (Phase 2 Docker testing)
+## 8. Data Loader Integration Testing
 
-4. **Small Batch Testing (40 minutes)**
-   - Run notebooks with LIMIT=5
-   - Verify feature consistency across all targets
-   - Check cross-validation metrics
-   - Test with validation and test data
-   - Test enhanced MI pipeline with different configuration profiles
-   - Run equivalent batch test in Docker
+### Feature Name and Format Validation
+- Verify all feature names match exactly what the data loader expects
+- Confirm file naming follows the required pattern for each feature type:
+{target_id}_dihedral_features.npz
+{target_id}_thermo_features.npz
+{target_id}_features.npz  (in mi_features directory)
+- Ensure directory structure matches what's expected by the data loader:
+features_dir/
+├── dihedral_features/
+├── thermo_features/
+└── mi_features/
 
-5. **Edge Case Testing (40 minutes)**
-   - Test with problematic inputs
-   - Verify error handling
-   - Check log messages and fallback mechanisms
-   - Test very long RNA sequences (>2000 nt) with chunking
-   - Test MSAs with varying quality and sequence count
-   - Verify memory optimization for large datasets
-   - Compare local and Docker results for edge cases
+### Downstream Loading Test
+- Implement a simple test that uses the actual data loading component
+```python
+from data_loader import load_precomputed_features
 
-6. **Integration Testing (30 minutes)**
-   - Run integration workflows in Docker (Phase 3 Docker testing)
-   - Test end-to-end pipeline in local and Docker environments
-   - Compare results for consistency
-   - Verify multi-feature pipeline
+# Test with one of your extracted feature sets
+features = load_precomputed_features("test_target_id", "path/to/features_dir")
 
-7. **Performance Testing (optional, time dependent)**
-   - Run full datasets if time permits
-   - Check resource usage and performance
-   - Monitor Docker resource utilization
-   - Compare performance between local and Docker environments
+# Verify all required keys are present
+assert 'dihedral' in features
+assert 'thermo' in features
+assert 'evolutionary' in features
 
-8. **Documentation and Reporting (30 minutes)**
-   - Document any issues found
-   - Create summary statistics for feature quality
-   - Generate reference visualizations of key features
-   - Document any differences between local and Docker runs
+# Verify critical features are available
+assert 'pairing_probs' in features['thermo']
+assert 'features' in features['dihedral']
+Shape Verification
 
-## Testing Output Artifacts
-
-For each test target, collect and organize:
-1. NPZ files with extracted features
-2. Feature quality metrics in JSON format
-3. Visualization plots for key features
-4. Log messages from execution
-5. Memory and performance statistics
+Verify that feature dimensions match what the data loader expects
+Confirm tensor shapes follow: (sequence_length, 4) for dihedral features
+Validate matrix shapes are both (sequence_length, sequence_length) for pairing_probs and coupling_matrix
