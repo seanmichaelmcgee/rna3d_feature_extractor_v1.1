@@ -378,3 +378,34 @@ We've successfully implemented pseudocount corrections for mutual information ca
    - Benchmark performance on full dataset
    - Create additional visualizations for reports
    - Consider optimizing memory usage for large MSAs
+
+### Structure Data Loading Fix - April 12, 2025
+
+We've fixed and improved the structure data loading mechanism:
+
+1. **Implementation details**:
+   - Updated `load_structure_data` function to correctly use labels CSV files as primary coordinate data source
+   - Removed incorrect attempts to search for non-existent separate coordinate files
+   - Implemented consistent behavior across all files that use structure data loading:
+     - `scripts/extract_pseudodihedral_features.py`
+     - `notebooks/train_features_extraction.ipynb`
+     - `notebooks/validation_features_extraction.ipynb`
+     - `scripts/single_target_test.py`
+   - Created test script `test_load_structure.py` to verify correct implementation
+
+2. **Key improvements**:
+   - Simplified data loading process by focusing on actual data sources (train_labels.csv and validation_labels.csv)
+   - More robust error handling with clearer error messages
+   - Consistent behavior across all parts of the codebase
+   - Performance improvement by eliminating fruitless searches for non-existent files
+
+3. **Verification**:
+   - Successfully tested with sample target ID (R1107)
+   - Confirmed correct loading of 69 residues from validation_labels.csv
+   - Verified full feature extraction pipeline works correctly with updated implementation
+   - All feature types (thermodynamic, MI, dihedral) extracted correctly
+
+4. **Next steps**:
+   - Update documentation to reflect correct data loading methodology
+   - Consider adding additional data validation steps
+   - Implement more robust fallback mechanisms for missing data

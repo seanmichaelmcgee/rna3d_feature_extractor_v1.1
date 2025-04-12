@@ -39,6 +39,45 @@ except ImportError as e:
     traceback.print_exc()
     sys.exit(1)
 
+def load_structure_data(target_id, data_dir):
+    """
+    Load structure data for a given target from labels CSV.
+    
+    Args:
+        target_id: Target ID
+        data_dir: Directory containing data (optional)
+        
+    Returns:
+        DataFrame with structure coordinates or None if not found
+    """
+    import pandas as pd
+    data_dir = Path(data_dir)
+    
+    # Define possible label files (train or validation)
+    label_files = [
+        data_dir / "train_labels.csv",
+        data_dir / "validation_labels.csv"
+    ]
+    
+    for label_file in label_files:
+        if label_file.exists():
+            try:
+                print(f"Looking for {target_id} in {label_file}")
+                # Read the entire CSV file
+                all_data = pd.read_csv(label_file)
+                
+                # Filter rows for this target ID
+                target_data = all_data[all_data["ID"].str.startswith(f"{target_id}_")]
+                
+                if len(target_data) > 0:
+                    print(f"Found {len(target_data)} residues for {target_id}")
+                    return target_data
+            except Exception as e:
+                print(f"Error loading from {label_file}: {e}")
+    
+    print(f"Could not find structure data for {target_id} in any labels file")
+    return None
+
 def get_sequence_for_target(target_id, data_dir):
     """
     Get RNA sequence for a target ID.
@@ -223,15 +262,48 @@ def extract_mi_features(target_id, msa_sequences, output_dir):
     
     return output_file
 
-def make_dihedral_features(target_id, sequence, output_dir):
+def extract_dihedral_features(target_id, structure_data, output_dir):
     """
-    Create dummy dihedral features for testing.
-    Since we can't calculate real dihedral features without 3D coordinates,
-    we create dummy features with the right shape for compatibility testing.
+    Extract dihedral features from structure data.
     
     Args:
         target_id: Target ID
-        sequence: RNA sequence
+        structure_data: DataFrame with structure coordinates
+        output_dir: Output directory
+        
+    Returns:
+        Path to saved feature file
+    """
+    print(f"\n=== Extracting dihedral features for {target_id} ===")
+    output_dir = Path(output_dir)
+    output_dir.mkdir(exist_ok=True, parents=True)
+    output_file = output_dir / f"{target_id}_dihedral_features.npz"
+    
+    try:
+        from src.analysis.dihedral_analysis import extract_dihedral_features as extract_dihedrals
+        
+        # Extract dihedral features
+        with MemoryTracker("Dihedral feature extraction"):
+            features = extract_dihedrals(structure_data, output_file=output_file, include_raw_angles=True)
+            features['target_id'] = target_id
+        
+        print(f"Extracted dihedral features with shape {features['features'].shape}")
+        return output_file
+    except Exception as e:
+        print(f"Error extracting dihedral features: {e}")
+        traceback.print_exc()
+        
+        # Fall back to making dummy features if extraction fails
+        return make_dummy_dihedral_features(target_id, len(structure_data), output_dir)
+
+def make_dummy_dihedral_features(target_id, seq_length, output_dir):
+    """
+    Create dummy dihedral features for testing.
+    Used as a fallback when real extraction fails.
+    
+    Args:
+        target_id: Target ID
+        seq_length: Length of sequence/structure
         output_dir: Output directory
         
     Returns:
@@ -242,14 +314,14 @@ def make_dihedral_features(target_id, sequence, output_dir):
     output_dir.mkdir(exist_ok=True, parents=True)
     output_file = output_dir / f"{target_id}_dihedral_features.npz"
     
-    # Create dummy features (sequence_length, 4) for alpha, beta, gamma, delta angles
-    dummy_features = np.random.normal(0, 1, size=(len(sequence), 4))
+    # Create dummy features (sequence_length, 4) for eta_sin, eta_cos, theta_sin, theta_cos
+    dummy_features = np.random.normal(0, 1, size=(seq_length, 4))
     
     # Save features
     features = {
         'features': dummy_features,
         'target_id': target_id,
-        'sequence': sequence
+        'feature_names': ['eta_sin', 'eta_cos', 'theta_sin', 'theta_cos']
     }
     save_features_npz(features, output_file)
     
@@ -383,6 +455,13 @@ def process_target(target_id, data_dir, output_dir, comparison_dir=None):
     
     print(f"Sequence length: {len(sequence)}")
     
+    # Load structure data
+    structure_data = load_structure_data(target_id, data_dir)
+    if structure_data is not None:
+        print(f"Loaded structure data with {len(structure_data)} residues")
+    else:
+        print(f"Warning: Could not load structure data, will use fallbacks")
+    
     # Track memory usage
     log_memory_usage("Initial memory")
     
@@ -414,16 +493,25 @@ def process_target(target_id, data_dir, output_dir, comparison_dir=None):
         print(f"Error extracting MI features: {e}")
         traceback.print_exc()
     
-    # Create dummy dihedral features for testing
+    # Extract dihedral features if we have structure data
     try:
-        dihedral_file = make_dihedral_features(
-            target_id=target_id,
-            sequence=sequence,
-            output_dir=output_dir / 'dihedral_features'
-        )
-        print(f"Saved dihedral features to {dihedral_file}")
+        if structure_data is not None:
+            dihedral_file = extract_dihedral_features(
+                target_id=target_id,
+                structure_data=structure_data,
+                output_dir=output_dir / 'dihedral_features'
+            )
+            print(f"Saved dihedral features to {dihedral_file}")
+        else:
+            # Fall back to dummy features
+            dihedral_file = make_dummy_dihedral_features(
+                target_id=target_id,
+                seq_length=len(sequence),
+                output_dir=output_dir / 'dihedral_features'
+            )
+            print(f"Saved dummy dihedral features to {dihedral_file}")
     except Exception as e:
-        print(f"Error creating dihedral features: {e}")
+        print(f"Error extracting dihedral features: {e}")
         traceback.print_exc()
     
     # Verify feature compatibility with data loader

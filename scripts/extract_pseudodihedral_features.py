@@ -38,54 +38,40 @@ except ImportError as e:
 
 def load_structure_data(target_id, data_dir="data/raw"):
     """
-    Load structure data for a given target.
+    Load structure data for a given target from labels CSV.
     
     Args:
         target_id: Target ID
-        data_dir: Directory containing structure data
+        data_dir: Directory containing data
         
     Returns:
         DataFrame with structure coordinates or None if not found
     """
-    # Try to find the structure file
-    structure_paths = [
-        Path(data_dir) / "structures" / f"{target_id}_coords.csv",
-        Path(data_dir) / f"{target_id}_coords.csv",
-        Path(data_dir) / "coordinates" / f"{target_id}.csv",
-        Path(data_dir) / "coordinates" / f"{target_id}_coords.csv"
+    data_dir = Path(data_dir)
+    
+    # Define possible label files (train or validation)
+    label_files = [
+        data_dir / "train_labels.csv",
+        data_dir / "validation_labels.csv"
     ]
     
-    for path in structure_paths:
-        if path.exists():
-            print(f"Loading structure data from {path}")
+    for label_file in label_files:
+        if label_file.exists():
             try:
-                return pd.read_csv(path)
+                print(f"Looking for {target_id} in {label_file}")
+                # Read the entire CSV file
+                all_data = pd.read_csv(label_file)
+                
+                # Filter rows for this target ID
+                target_data = all_data[all_data["ID"].str.startswith(f"{target_id}_")]
+                
+                if len(target_data) > 0:
+                    print(f"Found {len(target_data)} residues for {target_id}")
+                    return target_data
             except Exception as e:
-                print(f"Error loading structure data: {e}")
-                return None
+                print(f"Error loading from {label_file}: {e}")
     
-    # If we can't find specific structure files, try to extract from the main CSV
-    labels_file = Path(data_dir) / "train_labels.csv"
-    if labels_file.exists():
-        print(f"Loading from main labels file {labels_file}")
-        try:
-            # Read in the whole CSV
-            all_data = pd.read_csv(labels_file)
-            
-            # Filter rows for this target ID
-            target_data = all_data[all_data["ID"].str.startswith(f"{target_id}_")]
-            
-            if len(target_data) > 0:
-                print(f"Found {len(target_data)} residues for {target_id}")
-                return target_data
-            else:
-                print(f"No data found for {target_id} in {labels_file}")
-                return None
-        except Exception as e:
-            print(f"Error loading from labels file: {e}")
-            return None
-    
-    print(f"Could not find structure data for {target_id}")
+    print(f"Could not find structure data for {target_id} in any labels file")
     return None
 
 def extract_features_for_target(target_id, output_dir=None, data_dir="data/raw"):
