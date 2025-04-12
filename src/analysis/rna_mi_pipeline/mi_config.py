@@ -21,6 +21,10 @@ DEFAULT_CONFIG = {
     'max_sequences': 5000,   # Maximum number of sequences to use from MSA
     'conservation_range': (0.2, 0.95),  # Range of conservation for position filtering
     
+    # Pseudocount parameters
+    'pseudocount': None,     # Pseudocount value (None for adaptive selection)
+    'use_adaptive_pseudocount': True,   # Whether to adapt based on MSA size
+    
     # Execution parameters
     'parallel': True,        # Enable parallel processing
     'n_jobs': None,          # Number of jobs for parallel processing (None = CPU count - 1)
@@ -87,18 +91,21 @@ MSA_QUALITY_CONFIGS = {
         'identity_threshold': 0.85,
         'max_sequences': 10000,
         'conservation_range': (0.3, 0.9),
+        'pseudocount': 0.2,  # Lower pseudocount for high-quality MSAs
     },
     'medium_quality': {  # Standard MSAs
         'gap_threshold': 0.5,
         'identity_threshold': 0.8,
         'max_sequences': 5000,
         'conservation_range': (0.2, 0.95),
+        'pseudocount': 0.5,  # Default value
     },
     'low_quality': {  # Few or highly similar sequences
         'gap_threshold': 0.6,  # More permissive gap threshold
         'identity_threshold': 0.7,  # More aggressive sequence clustering
         'max_sequences': 1000,
         'conservation_range': (0.1, 0.99),  # Wider conservation range
+        'pseudocount': 0.8,  # Higher pseudocount for low-quality MSAs
     }
 }
 

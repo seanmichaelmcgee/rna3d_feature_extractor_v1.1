@@ -40,6 +40,9 @@ python -c "import numpy; import pandas; print('Core dependencies available')"
 - Test with a small MSA file
 - Verify calculation works with limited sequences
 - Test chunk processing for sequences > 750nt
+- Validate pseudocount implementation for sparse MSAs
+- Test adaptive pseudocount selection with different MSA sizes
+- Verify integration with sequence weighting and APC correction
 
 ## 3. Resource Management Testing
 
@@ -175,6 +178,10 @@ This simplified checklist focuses on getting a working Kaggle submission with pr
 - [ ] Test with representative mini dataset
 - [ ] Document the notebook thoroughly
 - [ ] Verify end-to-end processing in Kaggle environment
+- [x] Create MI pseudocount implementation plan
+- [ ] Implement pseudocount correction for basic MI calculation
+- [ ] Implement pseudocount integration with enhanced MI pipeline
+- [ ] Test pseudocount effectiveness with sparse MSAs
 
 ### Progress (April 12, 2025)
 
@@ -185,6 +192,11 @@ This simplified checklist focuses on getting a working Kaggle submission with pr
    - Single target testing for end-to-end validation
    - Docker comparison utility for cross-environment validation
 3. **Documentation**: Updated notebooks with memory monitoring, created implementation guide
+4. **MI Enhancement**: Developed pseudocount implementation plan:
+   - Adaptive pseudocount selection based on MSA size
+   - Integration strategy with sequence weighting and APC correction
+   - Backward compatibility approach
+   - Real-world MSA testing strategy
 
 ## Future Extension Points
 

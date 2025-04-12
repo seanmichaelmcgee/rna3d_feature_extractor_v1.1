@@ -7,6 +7,9 @@ A streamlined toolkit for extracting features from RNA molecules for machine lea
 - **Thermodynamic Analysis**: Extract energy landscapes, base-pairing probabilities, and structural features
 - **Dihedral Analysis**: Calculate pseudo-dihedral angles from 3D structural data
 - **Mutual Information Analysis**: Analyze evolutionary coupling signals from sequence alignments
+  - Improved with pseudocount correction for sparse MSAs
+  - Integrates with sequence weighting and APC correction
+  - Adaptive pseudocount selection based on MSA characteristics
 
 ## Installation
 

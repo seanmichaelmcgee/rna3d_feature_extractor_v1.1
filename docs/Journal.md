@@ -331,6 +331,7 @@ We've made significant progress implementing key testing infrastructure:
    - Created single target testing script (`scripts/single_target_test.py`)
    - Implemented Docker comparison utility (`scripts/compare_docker_outputs.py`)
    - Added memory profiling to notebooks with visualization
+   - Created MI pseudocount implementation plan (`docs/MiPseudoCount.md`)
 
 2. **Next actions**:
    - Run single target test and verify outputs
@@ -338,8 +339,10 @@ We've made significant progress implementing key testing infrastructure:
    - Identify and optimize memory bottlenecks for large sequences
    - Document memory requirements for Kaggle
    - Compare feature extraction consistency between local and Docker environments
+   - Implement pseudocount enhancement for mutual information calculations
 
 3. **Summary documentation**:
    - Created implementation summary document with usage instructions
    - Updated notebooks with memory monitoring capabilities
    - Added detailed function documentation to all new scripts
+   - Documented comprehensive MI pseudocount implementation approach

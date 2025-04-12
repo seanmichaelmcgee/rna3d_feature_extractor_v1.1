@@ -27,7 +27,7 @@ logger = logging.getLogger('enhanced_mi')
 
 def chunk_and_analyze_rna(msa_sequences, max_length=750, chunk_size=600, overlap=200, 
                        gap_threshold=0.5, conservation_range=(0.2, 0.95),
-                       parallel=True, n_jobs=None, verbose=False):
+                       parallel=True, n_jobs=None, pseudocount=None, verbose=False):
     """
     Process long RNA sequences by chunking into overlapping segments and 
     calculating mutual information with proper recombination.
@@ -50,6 +50,10 @@ def chunk_and_analyze_rna(msa_sequences, max_length=750, chunk_size=600, overlap
         Whether to use parallelization
     n_jobs : int, optional
         Number of parallel jobs
+    pseudocount : float or None, default=None
+        Pseudocount value to use for frequency normalization.
+        If None, will use adaptive selection based on MSA size.
+        If 0.0, no pseudocounts will be used (original behavior).
     verbose : bool
         Whether to print progress information
         
@@ -73,6 +77,7 @@ def chunk_and_analyze_rna(msa_sequences, max_length=750, chunk_size=600, overlap
             conservation_range=conservation_range,
             parallel=parallel,
             n_jobs=n_jobs,
+            pseudocount=pseudocount,
             verbose=verbose
         )
     
@@ -108,6 +113,7 @@ def chunk_and_analyze_rna(msa_sequences, max_length=750, chunk_size=600, overlap
             conservation_range=conservation_range,
             parallel=parallel,
             n_jobs=n_jobs,
+            pseudocount=pseudocount,
             verbose=verbose
         )
         
@@ -394,7 +400,7 @@ def load_msa_robust(msa_file, max_sequences=10000, timeout=300):
 def process_rna_msa_for_structure(msa_file, output_features=None, max_length=750,
                                 chunk_size=600, overlap=200, gap_threshold=0.5,
                                 identity_threshold=0.80, max_sequences=5000,
-                                conservation_range=(0.2, 0.95), 
+                                conservation_range=(0.2, 0.95), pseudocount=None,
                                 parallel=True, n_jobs=None, verbose=True):
     """
     Complete pipeline to process RNA MSA for structure prediction,
@@ -420,6 +426,10 @@ def process_rna_msa_for_structure(msa_file, output_features=None, max_length=750
         Maximum number of sequences to use
     conservation_range : tuple
         Range of conservation values to include
+    pseudocount : float or None, default=None
+        Pseudocount value to use for frequency normalization.
+        If None, will use adaptive selection based on MSA size.
+        If 0.0, no pseudocounts will be used (original behavior).
     parallel : bool
         Whether to use parallelization
     n_jobs : int, optional
@@ -468,6 +478,7 @@ def process_rna_msa_for_structure(msa_file, output_features=None, max_length=750
         conservation_range=conservation_range,
         parallel=parallel,
         n_jobs=n_jobs,
+        pseudocount=pseudocount,
         verbose=verbose
     )
     
@@ -485,7 +496,8 @@ def process_rna_msa_for_structure(msa_file, output_features=None, max_length=750
         'parameters': {
             'gap_threshold': gap_threshold,
             'identity_threshold': identity_threshold,
-            'conservation_range': conservation_range
+            'conservation_range': conservation_range,
+            'pseudocount': mi_result.get('params', {}).get('pseudocount', pseudocount)
         }
     }
     
@@ -627,11 +639,30 @@ def calculate_conservation(sequences, weights=None):
     
     return conservation
         
+def get_adaptive_pseudocount(msa_sequences):
+    """
+    Determine appropriate pseudocount value based on MSA characteristics.
+    
+    Args:
+        msa_sequences: List of aligned sequences
+        
+    Returns:
+        float: Appropriate pseudocount value based on MSA size
+    """
+    seq_count = len(msa_sequences)
+    if seq_count <= 25:
+        return 0.5  # Higher pseudocount for very small MSAs
+    elif seq_count <= 100:
+        return 0.2  # Moderate pseudocount for medium MSAs
+    else:
+        return 0.0  # No pseudocount for large, well-populated MSAs
+
 def calculate_mutual_information_enhanced(msa_sequences, weights=None, 
                                         gap_threshold=0.5, 
                                         conservation_range=(0.2, 0.95),
                                         parallel=True,
                                         n_jobs=None,
+                                        pseudocount=None,
                                         verbose=False):
     """
     Calculate mutual information with RNA-specific enhancements.
@@ -650,6 +681,10 @@ def calculate_mutual_information_enhanced(msa_sequences, weights=None,
         Whether to use parallelization
     n_jobs : int, optional
         Number of parallel jobs
+    pseudocount : float or None, default=None
+        Pseudocount value to use for frequency normalization.
+        If None, will use adaptive selection based on MSA size.
+        If 0.0, no pseudocounts will be used (original behavior).
     verbose : bool
         Whether to print progress information
         
@@ -668,8 +703,14 @@ def calculate_mutual_information_enhanced(msa_sequences, weights=None,
     seq_count = len(msa_sequences)
     seq_length = len(msa_sequences[0])
     
+    # Get adaptive pseudocount if not specified
+    if pseudocount is None:
+        pseudocount = get_adaptive_pseudocount(msa_sequences)
+    
     if verbose:
         logger.info(f"Processing MSA with {seq_count} sequences of length {seq_length}")
+        if pseudocount > 0:
+            logger.info(f"Using pseudocount correction: {pseudocount}")
     
     # Calculate sequence weights if not provided
     if weights is None:
@@ -678,6 +719,10 @@ def calculate_mutual_information_enhanced(msa_sequences, weights=None,
     # Initialize MI matrix
     mi_matrix = np.zeros((seq_length, seq_length))
     
+    # Define the RNA alphabet
+    alphabet = ['A', 'C', 'G', 'U', 'T', '-', 'N']
+    alphabet_size = len(alphabet)
+    
     # Simple implementation of position MI calculation
     for i in range(seq_length):
         for j in range(i+1, seq_length):
@@ -685,20 +730,59 @@ def calculate_mutual_information_enhanced(msa_sequences, weights=None,
             col_i = [seq[i] for seq in msa_sequences]
             col_j = [seq[j] for seq in msa_sequences]
             
-            # Calculate joint and marginal frequencies
-            counts_i = Counter(col_i)
-            counts_j = Counter(col_j)
-            counts_ij = Counter(zip(col_i, col_j))
-            
-            # Calculate mutual information
-            mi = 0.0
-            for x, nx in counts_i.items():
-                px = nx / seq_count
-                for y, ny in counts_j.items():
-                    py = ny / seq_count
-                    if (x,y) in counts_ij:
-                        pxy = counts_ij[(x,y)] / seq_count
-                        mi += pxy * np.log2(pxy / (px * py))
+            # Bypass pseudocount logic if pseudocount is 0.0 (original behavior)
+            if pseudocount <= 0.0:
+                # Calculate joint and marginal frequencies without pseudocounts
+                counts_i = Counter(col_i)
+                counts_j = Counter(col_j)
+                counts_ij = Counter(zip(col_i, col_j))
+                
+                # Calculate mutual information
+                mi = 0.0
+                for x, nx in counts_i.items():
+                    px = nx / seq_count
+                    for y, ny in counts_j.items():
+                        py = ny / seq_count
+                        if (x,y) in counts_ij:
+                            pxy = counts_ij[(x,y)] / seq_count
+                            mi += pxy * np.log2(pxy / (px * py))
+            else:
+                # Calculate frequencies with pseudocounts and sequence weights
+                # Initialize frequency dictionaries with pseudocounts
+                i_freqs = {a: pseudocount/alphabet_size for a in alphabet}
+                j_freqs = {a: pseudocount/alphabet_size for a in alphabet}
+                joint_freqs = {(a, b): pseudocount/(alphabet_size**2) for a in alphabet for b in alphabet}
+                
+                # Calculate total weight of sequences
+                total_weight = 1.0  # Weights sum to 1.0 due to normalization
+                
+                # Add weighted observations
+                for idx, (a, b) in enumerate(zip(col_i, col_j)):
+                    if a in alphabet and b in alphabet:
+                        w = weights[idx]
+                        i_freqs[a] += w
+                        j_freqs[b] += w
+                        joint_freqs[(a, b)] += w
+                
+                # Normalize with pseudocount
+                norm_factor = total_weight + pseudocount
+                for a in alphabet:
+                    i_freqs[a] /= norm_factor
+                    j_freqs[a] /= norm_factor
+                
+                for pair in joint_freqs:
+                    joint_freqs[pair] /= norm_factor
+                
+                # Calculate MI using normalized frequencies
+                mi = 0.0
+                for a in alphabet:
+                    p_a = i_freqs[a]
+                    if p_a > 0:
+                        for b in alphabet:
+                            p_b = j_freqs[b]
+                            p_ab = joint_freqs[(a, b)]
+                            if p_b > 0 and p_ab > 0:
+                                mi += p_ab * np.log2(p_ab / (p_a * p_b))
             
             # Set symmetric values
             mi_matrix[i, j] = mi_matrix[j, i] = mi
@@ -712,7 +796,13 @@ def calculate_mutual_information_enhanced(msa_sequences, weights=None,
         'apc_matrix': apc_matrix,
         'scores': apc_matrix,  # Use APC-corrected scores
         'coupling_matrix': apc_matrix,  # Add standardized name
-        'method': 'mutual_information_enhanced'
+        'method': 'mutual_information_enhanced',
+        'params': {
+            'pseudocount': pseudocount,
+            'alphabet_size': alphabet_size,
+            'gap_threshold': gap_threshold,
+            'conservation_range': conservation_range
+        }
     }
     
     return result
@@ -743,8 +833,13 @@ def apply_rna_apc_correction(mi_matrix):
     for i in range(n):
         for j in range(i+1, n):
             # Standard APC correction formula
-            apc_correction = (row_means[i] * row_means[j]) / overall_mean
-            apc_value = max(0, mi_matrix[i, j] - apc_correction)
+            # Avoid division by zero
+            if overall_mean > 0:
+                apc_correction = (row_means[i] * row_means[j]) / overall_mean
+                apc_value = max(0, mi_matrix[i, j] - apc_correction)
+            else:
+                apc_value = mi_matrix[i, j]  # If overall_mean is 0, skip correction
+                
             apc_matrix[i, j] = apc_matrix[j, i] = apc_value
     
     # RNA-specific adjustments
