@@ -215,11 +215,11 @@ def validate_features(features, sequence_length):
 
 ## Implementation Checklist
 
-- [ ] Update thermodynamic feature naming (primary focus on `positional_entropy` and `pairing_probs`)
-- [ ] Update mutual information feature naming (focus on `coupling_matrix`)
-- [ ] Add feature validation to processing pipeline
+- [x] Update thermodynamic feature naming (primary focus on `positional_entropy` and `pairing_probs`)
+- [x] Update mutual information feature naming (focus on `coupling_matrix`)
+- [x] Add feature validation to processing pipeline
 - [ ] Update notebooks to reflect standardized naming
-- [ ] Add test cases to verify feature naming consistency
+- [x] Add test cases to verify feature naming consistency
 
 ## Example Integration with PyTorch Pipeline
 
