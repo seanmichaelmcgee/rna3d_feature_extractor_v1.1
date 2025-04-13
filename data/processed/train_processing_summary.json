@@ -1,0 +1,82 @@
+{
+  "timestamp": "2025-04-12 22:47:28",
+  "total_targets": 5,
+  "total_time": 3.767477512359619,
+  "success_counts": {
+    "thermo": 5,
+    "dihedral": 5,
+    "mi": 5
+  },
+  "skipped_counts": {
+    "thermo": 0,
+    "dihedral": 0,
+    "mi": 0
+  },
+  "target_results": {
+    "17RA_A": {
+      "target_id": "17RA_A",
+      "thermo": {
+        "success": true
+      },
+      "dihedral": {
+        "success": true
+      },
+      "mi": {
+        "success": true
+      },
+      "elapsed_time": 0.16816234588623047
+    },
+    "1A1T_B": {
+      "target_id": "1A1T_B",
+      "thermo": {
+        "success": true
+      },
+      "dihedral": {
+        "success": true
+      },
+      "mi": {
+        "success": true
+      },
+      "elapsed_time": 0.1575639247894287
+    },
+    "1A4T_A": {
+      "target_id": "1A4T_A",
+      "thermo": {
+        "success": true
+      },
+      "dihedral": {
+        "success": true
+      },
+      "mi": {
+        "success": true
+      },
+      "elapsed_time": 0.14087367057800293
+    },
+    "1A51_A": {
+      "target_id": "1A51_A",
+      "thermo": {
+        "success": true
+      },
+      "dihedral": {
+        "success": true
+      },
+      "mi": {
+        "success": true
+      },
+      "elapsed_time": 2.981804609298706
+    },
+    "1A60_A": {
+      "target_id": "1A60_A",
+      "thermo": {
+        "success": true
+      },
+      "dihedral": {
+        "success": true
+      },
+      "mi": {
+        "success": true
+      },
+      "elapsed_time": 0.31886792182922363
+    }
+  }
+}
