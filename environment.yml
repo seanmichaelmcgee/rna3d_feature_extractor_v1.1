@@ -39,8 +39,3 @@ dependencies:
   - h5py
   - pyyaml
   
-  # Pip packages
-  - pip:
-      - py3Dmol
-      - evcouplings
-      - biotite
