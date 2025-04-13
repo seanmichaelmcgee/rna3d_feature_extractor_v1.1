@@ -1,0 +1,65 @@
+{
+  "timestamp": "2025-04-13 00:01:58",
+  "total_targets": 5,
+  "total_time": 50.72730255126953,
+  "success_counts": {
+    "thermo": 5,
+    "mi": 5
+  },
+  "skipped_counts": {
+    "thermo": 0,
+    "mi": 0
+  },
+  "target_results": {
+    "R1107": {
+      "target_id": "R1107",
+      "thermo": {
+        "success": true
+      },
+      "mi": {
+        "success": true
+      },
+      "elapsed_time": 4.539472818374634
+    },
+    "R1108": {
+      "target_id": "R1108",
+      "thermo": {
+        "success": true
+      },
+      "mi": {
+        "success": true
+      },
+      "elapsed_time": 7.885408639907837
+    },
+    "R1116": {
+      "target_id": "R1116",
+      "thermo": {
+        "success": true
+      },
+      "mi": {
+        "success": true
+      },
+      "elapsed_time": 26.328101873397827
+    },
+    "R1117v2": {
+      "target_id": "R1117v2",
+      "thermo": {
+        "success": true
+      },
+      "mi": {
+        "success": true
+      },
+      "elapsed_time": 0.10132861137390137
+    },
+    "R1126": {
+      "target_id": "R1126",
+      "thermo": {
+        "success": true
+      },
+      "mi": {
+        "success": true
+      },
+      "elapsed_time": 11.872684717178345
+    }
+  }
+}
