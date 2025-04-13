@@ -1,5 +1,8 @@
-# Ignore data/raw directory containing large files
+# Ignore data directories containing large files
 data/raw/
+data/processed/**/*.npz
+data/processed/**/*.hdf5
+data/processed/*_summary.json
 
 # Python
 __pycache__/
