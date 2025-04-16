@@ -86,21 +86,94 @@ This package provides Jupyter notebooks for three different types of data:
 
 - `notebooks/mi_pseudocount_demo.ipynb`: Demonstrates pseudocount improvement on MI calculations
 
-### Command Line Scripts
+### Processing Training Data
 
-Process features for a single target:
+Training data with 3D structures can be processed using either the notebook or command line:
+
+#### Using the Notebook
 ```bash
-python scripts/run_feature_extraction_single.sh <target_id>
+jupyter notebook notebooks/train_features_extraction.ipynb
 ```
+Set `LIMIT = None` to process all training data.
+
+#### Using Command Line (Recommended for Large Datasets)
+```bash
+python src/data/batch_feature_runner.py \
+  --csv data/raw/train_sequences.csv \
+  --output-dir data/processed/features \
+  --id-col target_id \
+  --seq-col sequence \
+  --length-min 1 \
+  --length-max 10000 \
+  --batch-size 20 \
+  --dynamic-batch \
+  --retry 2 \
+  --pf-scale 1.5 \
+  --verbose \
+  --checkpoint-interval 10 \
+  --resume
+```
+
+This command provides robust error recovery and memory management for processing large datasets.
+
+### Processing Validation Data
+
+For validation data with multiple coordinate structures, use the validation notebook:
+
+```bash
+jupyter notebook notebooks/validation_features_extraction.ipynb
+```
+
+**Important Note**: The validation notebook contains specialized handling for multiple coordinate sets per structure that is not available in the command-line tools. For validation data specifically, we recommend using the notebook with `LIMIT = None` rather than the command-line tools.
+
+Key validation data capabilities:
+- Proper filtering of empty coordinate sets (`-1e+18` placeholder values)
+- Multi-structure output format that preserves all alternative structural coordinates
+- Specialized ID matching for validation features
+
+### Processing Test Data
+
+Test data typically has no 3D structures, so only thermodynamic features can be extracted (no dihedral angles). 
+
+#### Using the Notebook
+```bash
+jupyter notebook notebooks/test_features_extraction.ipynb
+```
+
+#### Using Command Line
+```bash
+python src/data/batch_feature_runner.py \
+  --csv data/raw/test_sequences.csv \
+  --output-dir data/processed/test_features \
+  --id-col target_id \
+  --seq-col sequence \
+  --length-min 1 \
+  --length-max 10000 \
+  --batch-size 20 \
+  --dynamic-batch \
+  --retry 2 \
+  --pf-scale 1.5 \
+  --verbose
+```
+
+Since test data does not include 3D structures, you'll only get thermodynamic features. If your test data does have coordinate information, you should use the training data extraction pipeline instead.
+
+### Other Command Line Scripts
 
 Extract pseudodihedral features:
 ```bash
-python scripts/extract_pseudodihedral_features.py <pdb_file> <output_file>
+python scripts/extract_pseudodihedral_features.py --target <target_id>
+python scripts/extract_pseudodihedral_features.py --all  # Process all targets
 ```
 
 Run MI calculation in batch mode:
 ```bash
 python scripts/run_mi_batch.sh <target_list_file>
+```
+
+Process features for a single target:
+```bash
+python scripts/run_feature_extraction_single.sh <target_id>
 ```
 
 ## API Usage
