@@ -23,3 +23,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Include validation for thermodynamic consistency
 - Ensure proper error handling for ViennaRNA integration
 - Create visualizations for debugging RNA structures when appropriate
+
+## Important Files (DO NOT DELETE)
+- `notebooks/test_features_extraction.ipynb` - Required for test feature extraction
+- `notebooks/train_features_extraction.ipynb` - Required for training feature extraction
+- `notebooks/validation_features_extraction.ipynb` - Required for validation feature extraction
+- Markdown versions of these notebooks are found in the same directory with _ntbk.py.md extension
