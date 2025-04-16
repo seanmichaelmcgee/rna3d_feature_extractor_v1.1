@@ -90,14 +90,17 @@ This package provides Jupyter notebooks for three different types of data:
 
 Training data with 3D structures can be processed using either the notebook or command line:
 
-#### Using the Notebook
+#### Using the Notebook (Recommended)
 ```bash
 jupyter notebook notebooks/train_features_extraction.ipynb
 ```
 Set `LIMIT = None` to process all training data.
 
-#### Using Command Line (Recommended for Large Datasets)
+#### Using Command Line (Not Recommended)
+The command line approach has serious limitations compared to the notebooks (see details in the Test Data section).
+
 ```bash
+# Thermodynamic features only (missing proper ViennaRNA integration)
 python src/data/batch_feature_runner.py \
   --csv data/raw/train_sequences.csv \
   --output-dir data/processed/features \
@@ -114,7 +117,7 @@ python src/data/batch_feature_runner.py \
   --resume
 ```
 
-This command provides robust error recovery and memory management for processing large datasets.
+The command-line approach would require three separate steps (one for each feature type) compared to the notebook's integrated approach. While it offers better memory management and checkpoint/resume capabilities, the ViennaRNA integration issues and feature fragmentation make it less reliable.
 
 ### Processing Validation Data
 
@@ -135,13 +138,26 @@ Key validation data capabilities:
 
 Test data typically has no 3D structures, so only thermodynamic features can be extracted (no dihedral angles). 
 
-#### Using the Notebook
+#### Using the Notebook (Recommended)
 ```bash
 jupyter notebook notebooks/test_features_extraction.ipynb
 ```
 
-#### Using Command Line
+⚠️ **IMPORTANT: Command-line limitations** ⚠️
+
+The command-line scripts have several limitations compared to the notebooks:
+
+1. **ViennaRNA Integration Issues**: The scripts may fail to properly import ViennaRNA even when installed in the environment
+2. **Feature Fragmentation**: Unlike notebooks which extract all features in one workflow:
+   - `batch_feature_runner.py` only extracts thermodynamic features
+   - MI features require separately running `run_mi_batch.sh`
+   - Dihedral features require separately running `run_dihedral_extraction.sh`
+3. **Missing Integrated Workflow**: No single script combines all feature types like the notebooks do
+
+If you still want to use command line, you need to run each feature extraction separately:
+
 ```bash
+# Thermodynamic features only (not recommended - missing proper ViennaRNA integration)
 python src/data/batch_feature_runner.py \
   --csv data/raw/test_sequences.csv \
   --output-dir data/processed/test_features \
@@ -156,7 +172,7 @@ python src/data/batch_feature_runner.py \
   --verbose
 ```
 
-Since test data does not include 3D structures, you'll only get thermodynamic features. If your test data does have coordinate information, you should use the training data extraction pipeline instead.
+For complete and reliable feature extraction, the notebooks are currently the recommended approach.
 
 ### Other Command Line Scripts
 
