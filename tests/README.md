@@ -9,11 +9,25 @@ This directory contains tests for the RNA feature extraction shell scripts. The 
 5. HTML report generation
 6. Output feature format validity
 
+## Prerequisites
+
+Before running tests, ensure:
+
+1. The environment is properly set up using `./setup.sh`
+2. The `rna3d-core` environment is activated: `mamba activate rna3d-core`
+3. All required dependencies are installed (especially ViennaRNA)
+
+The scripts will automatically check for proper environment configuration, but it's more efficient to verify the environment beforehand.
+
 ## Running Tests
 
 To run all tests:
 
 ```bash
+# Make sure the environment is activated
+mamba activate rna3d-core
+
+# Run tests
 ./tests/test_feature_extraction_scripts.sh
 ```
 
