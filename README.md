@@ -96,8 +96,41 @@ jupyter notebook notebooks/train_features_extraction.ipynb
 ```
 Set `LIMIT = None` to process all training data.
 
-#### Using Command Line (Not Recommended)
-The command line approach has serious limitations compared to the notebooks (see details in the Test Data section).
+#### Using the Enhanced Shell Scripts (New)
+
+We've implemented robust shell scripts for each data type that provide the same functionality as the notebooks with added features for production use:
+
+```bash
+# Process training data with all features
+./scripts/feature_extraction/extract_train_features.sh
+
+# With additional options
+./scripts/feature_extraction/extract_train_features.sh \
+  --csv data/raw/train_sequences.csv \
+  --output-dir data/processed \
+  --limit 5 \
+  --cores 4 \
+  --pf-scale 1.5 \
+  --target 1SCL_A \
+  --batch-size 5 \
+  --memory-limit 16 \
+  --verbose \
+  --report
+```
+
+These scripts include:
+- Memory monitoring and management
+- Progress tracking and resumption capabilities
+- Detailed error handling and logging
+- Comprehensive HTML reporting
+- Skip-existing functionality
+- All feature types in a single workflow
+
+For full documentation, see [scripts/feature_extraction/README.md](scripts/feature_extraction/README.md).
+
+#### Using Legacy Command Line (Not Recommended)
+
+The older command line approach has serious limitations compared to the notebooks and the new shell scripts:
 
 ```bash
 # Thermodynamic features only (missing proper ViennaRNA integration)
@@ -117,64 +150,54 @@ python src/data/batch_feature_runner.py \
   --resume
 ```
 
-The command-line approach would require three separate steps (one for each feature type) compared to the notebook's integrated approach. While it offers better memory management and checkpoint/resume capabilities, the ViennaRNA integration issues and feature fragmentation make it less reliable.
-
 ### Processing Validation Data
 
-For validation data with multiple coordinate structures, use the validation notebook:
+For validation data with multiple coordinate structures:
 
+#### Using the Notebook
 ```bash
 jupyter notebook notebooks/validation_features_extraction.ipynb
 ```
 
-**Important Note**: The validation notebook contains specialized handling for multiple coordinate sets per structure that is not available in the command-line tools. For validation data specifically, we recommend using the notebook with `LIMIT = None` rather than the command-line tools.
+#### Using the Enhanced Shell Script
+```bash
+./scripts/feature_extraction/extract_validation_features.sh
 
-Key validation data capabilities:
+# With options for handling multiple coordinate sets
+./scripts/feature_extraction/extract_validation_features.sh \
+  --target R1107 \
+  --verbose \
+  --report
+```
+
+The validation script includes specialized handling for multiple coordinate sets:
 - Proper filtering of empty coordinate sets (`-1e+18` placeholder values)
 - Multi-structure output format that preserves all alternative structural coordinates
 - Specialized ID matching for validation features
 
 ### Processing Test Data
 
-Test data typically has no 3D structures, so only thermodynamic features can be extracted (no dihedral angles). 
+Test data typically has no 3D structures, so only thermodynamic and MI features are extracted (no dihedral angles). 
 
-#### Using the Notebook (Recommended)
+#### Using the Notebook
 ```bash
 jupyter notebook notebooks/test_features_extraction.ipynb
 ```
 
-⚠️ **IMPORTANT: Command-line limitations** ⚠️
-
-The command-line scripts have several limitations compared to the notebooks:
-
-1. **ViennaRNA Integration Issues**: The scripts may fail to properly import ViennaRNA even when installed in the environment
-2. **Feature Fragmentation**: Unlike notebooks which extract all features in one workflow:
-   - `batch_feature_runner.py` only extracts thermodynamic features
-   - MI features require separately running `run_mi_batch.sh`
-   - Dihedral features require separately running `run_dihedral_extraction.sh`
-3. **Missing Integrated Workflow**: No single script combines all feature types like the notebooks do
-
-If you still want to use command line, you need to run each feature extraction separately:
-
+#### Using the Enhanced Shell Script
 ```bash
-# Thermodynamic features only (not recommended - missing proper ViennaRNA integration)
-python src/data/batch_feature_runner.py \
-  --csv data/raw/test_sequences.csv \
-  --output-dir data/processed/test_features \
-  --id-col target_id \
-  --seq-col sequence \
-  --length-min 1 \
-  --length-max 10000 \
-  --batch-size 20 \
-  --dynamic-batch \
-  --retry 2 \
-  --pf-scale 1.5 \
-  --verbose
+./scripts/feature_extraction/extract_test_features.sh
+
+# With options
+./scripts/feature_extraction/extract_test_features.sh \
+  --target R1107 \
+  --verbose \
+  --report
 ```
 
-For complete and reliable feature extraction, the notebooks are currently the recommended approach.
+### Legacy Command Line Scripts
 
-### Other Command Line Scripts
+The following legacy scripts are still available but not recommended:
 
 Extract pseudodihedral features:
 ```bash
@@ -248,27 +271,57 @@ The MI pipeline is configurable through `src/analysis/rna_mi_pipeline/mi_config.
 
 ```
 rna3d_feature_extractor/
-├── data/                         # Data storage
-│   ├── raw/                      # Input RNA files
-│   └── processed/                # Extracted features
-│       ├── dihedral_features/    # Dihedral angle features
-│       ├── mi_features/          # Mutual information features
-│       └── thermo_features/      # Thermodynamic features
-├── docs/                         # Documentation
-├── notebooks/                    # Jupyter notebooks
-├── scripts/                      # Utility scripts
-├── src/                          # Source code
-│   ├── analysis/                 # Analysis modules
+├── data/                          # Data storage
+│   ├── raw/                       # Input RNA files
+│   └── processed/                 # Extracted features
+│       ├── dihedral_features/     # Dihedral angle features
+│       ├── mi_features/           # Mutual information features
+│       └── thermo_features/       # Thermodynamic features
+├── docs/                          # Documentation
+├── notebooks/                     # Jupyter notebooks
+│   ├── train_features_extraction.ipynb    # Training data extraction
+│   ├── validation_features_extraction.ipynb # Validation data extraction
+│   ├── test_features_extraction.ipynb     # Test data extraction
+│   └── mi_pseudocount_demo.ipynb          # Demonstrates pseudocounts
+├── scripts/                       # Utility scripts
+│   ├── feature_extraction/        # Enhanced shell scripts
+│   │   ├── extract_train_features.sh    # Training data extraction
+│   │   ├── extract_validation_features.sh # Validation data extraction
+│   │   ├── extract_test_features.sh     # Test data extraction
+│   │   ├── verify_features.py           # Feature verification
+│   │   ├── test_extraction_scripts.sh   # Simple test script
+│   │   └── README.md                    # Script documentation
+│   ├── compare_docker_outputs.py        # Docker output comparison
+│   ├── extract_pseudodihedral_features.py # Dihedral extraction
+│   ├── run_dihedral_extraction.sh       # Run dihedral extraction
+│   ├── run_feature_extraction_single.sh # Single target extraction
+│   ├── run_mi_batch.sh                  # MI batch processing
+│   ├── single_target_test.py            # Single target test
+│   ├── test_load_structure.py           # Structure loading test
+│   └── verify_feature_compatibility.py  # Feature compatibility check
+├── src/                           # Source code
+│   ├── analysis/                  # Analysis modules
 │   │   ├── dihedral_analysis.py
 │   │   ├── memory_monitor.py
 │   │   ├── mutual_information.py
-│   │   ├── rna_mi_pipeline/      # Enhanced MI implementation
+│   │   ├── rna_mi_pipeline/       # Enhanced MI implementation
 │   │   │   ├── enhanced_mi.py
 │   │   │   ├── mi_config.py
-│   │   │   └── rna_mi_pipeline.py
+│   │   │   ├── rna_mi_pipeline.py
+│   │   │   └── tech_guide.md
 │   │   └── thermodynamic_analysis.py
-│   └── data/                     # Data processing utilities
-└── tests/                        # Unit tests
+│   └── data/                      # Data processing utilities
+│       ├── batch_feature_runner.py
+│       ├── extract_features_simple.py
+│       ├── npz_to_csv.py
+│       └── visualize_features.py
+└── tests/                         # Unit tests
+    ├── analysis/                  # Analysis module tests
+    │   ├── test_feature_names.py
+    │   ├── test_mi_pseudocounts.py
+    │   └── test_thermodynamic_analysis.py
+    ├── test_feature_extraction_scripts.sh # Comprehensive test runner
+    └── README.md                  # Test documentation
 ```
 
 ## Memory Optimization
@@ -279,6 +332,55 @@ This toolkit includes memory monitoring and optimization tools for running in co
 - Adaptive batch processing for MSAs
 - Memory-aware parameter selection
 - Resource usage tracking
+- Dynamic batch size adjustment in shell scripts
+
+## Testing
+
+This toolkit includes comprehensive testing infrastructure:
+
+### Unit Tests
+
+```bash
+# Run all unit tests
+python -m unittest discover tests
+
+# Run specific test module
+python -m unittest tests.analysis.test_mi_pseudocounts
+```
+
+### Feature Extraction Tests
+
+The enhanced shell scripts include their own testing infrastructure:
+
+```bash
+# Run comprehensive testing of all shell scripts
+./tests/test_feature_extraction_scripts.sh
+
+# This will run various tests and generate a detailed report:
+# - Basic functionality tests for all data types
+# - Resume capability tests
+# - Skip-existing functionality tests
+# - Batch processing tests
+# - Feature verification tests
+```
+
+The test output includes:
+- Detailed logs in `tests/feature_extraction_test.log`
+- Markdown report in `tests/feature_extraction_test_report.md`
+- Test output files in `data/test_output`
+
+### Feature Verification
+
+You can verify the format of extracted feature files:
+
+```bash
+# Verify features in a directory
+./scripts/feature_extraction/verify_features.py data/processed
+
+# Verify specific feature files
+./scripts/feature_extraction/verify_features.py . \
+  --thermo-file data/processed/thermo_features/1SCL_A_thermo_features.npz
+```
 
 ## Docker Usage
 
