@@ -37,13 +37,18 @@ A streamlined toolkit for extracting features from RNA molecules for machine lea
 git clone https://github.com/yourusername/rna3d_feature_extractor.git
 cd rna3d_feature_extractor
 
-# Create and activate conda environment
+# Run the setup script (recommended)
+./setup.sh
+
+# Or manually create and activate the environment
 mamba env create -f environment.yml
 mamba activate rna3d-core
 
 # Install in development mode
 pip install -e .
 ```
+
+For detailed instructions on environment setup, including troubleshooting common issues, see our [Environment Setup Guide](docs/environment-setup.md).
 
 ### Option 2: Docker Installation
 
@@ -278,6 +283,9 @@ rna3d_feature_extractor/
 │       ├── mi_features/           # Mutual information features
 │       └── thermo_features/       # Thermodynamic features
 ├── docs/                          # Documentation
+│   ├── docker-testing-strategy.md # Docker testing documentation
+│   ├── environment-setup.md       # Detailed environment setup guide
+│   └── feature-renaming.md        # Feature naming guidelines
 ├── notebooks/                     # Jupyter notebooks
 │   ├── train_features_extraction.ipynb    # Training data extraction
 │   ├── validation_features_extraction.ipynb # Validation data extraction
