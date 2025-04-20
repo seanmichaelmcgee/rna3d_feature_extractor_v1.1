@@ -28,6 +28,20 @@ A streamlined toolkit for extracting features from RNA molecules for machine lea
 - RNA-specific Average Product Correction (APC)
 - Chunking support for long sequences (>750 nucleotides)
 
+## Feature Extraction Status
+
+Feature extraction has been completed successfully with exceptional completeness and consistency:
+
+- **Total unique RNA sequences**: 856
+- **Feature coverage**: 99.9% of sequences have all three feature types
+- **Detailed statistics**: See our [Feature Summary](FEATURE_SUMMARY.md) for complete coverage analysis
+
+### Future Improvements
+- **MSA Optimization**: Exclude MSA calculation for single-sequence cases (current priority)
+  - When only one sequence exists, MSA calculation is futile and computationally expensive
+  - This will significantly improve performance for very long sequences
+- **Container MSA Testing**: Develop a test notebook for MSA calculation in containerized environments
+
 ## Installation
 
 ### Option 1: Standard Installation
@@ -389,6 +403,22 @@ You can verify the format of extracted feature files:
 ./scripts/feature_extraction/verify_features.py . \
   --thermo-file data/processed/thermo_features/1SCL_A_thermo_features.npz
 ```
+
+## TODO List
+
+1. **Optimize MSA Calculation**:
+   - Exclude MSA calculation when there is only one sequence
+   - This will avoid futile computation for very long sequences
+   - Significantly reduce compute resource usage
+
+2. **Containerized MSA Testing**:
+   - Create a test notebook for MSA calculation in containerized environments
+   - Ensure consistent results across different compute environments
+   - Validate MSA generation in resource-constrained settings
+
+3. **Feature Coverage Improvement**:
+   - Address the single missing dihedral feature (2OM3_R)
+   - Reach 100% feature coverage across all sequences
 
 ## Docker Usage
 
