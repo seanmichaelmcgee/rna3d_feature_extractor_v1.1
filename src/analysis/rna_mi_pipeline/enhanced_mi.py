@@ -64,6 +64,22 @@ def chunk_and_analyze_rna(msa_sequences, max_length=750, chunk_size=600, overlap
     """
     if not msa_sequences:
         return None
+    
+    # Check for single-sequence MSA (either exactly one sequence or multiple identical sequences)
+    unique_sequences = set(msa_sequences)
+    if len(unique_sequences) <= 1:
+        if verbose:
+            logger.info(f"Single-sequence MSA detected in chunk_and_analyze_rna, delegating to calculate_mutual_information_enhanced")
+        # Just delegate to the enhanced MI function, which will handle the single-sequence case
+        return calculate_mutual_information_enhanced(
+            msa_sequences,
+            gap_threshold=gap_threshold,
+            conservation_range=conservation_range,
+            parallel=parallel,
+            n_jobs=n_jobs,
+            pseudocount=pseudocount,
+            verbose=verbose
+        )
         
     seq_length = len(msa_sequences[0])
     
@@ -695,6 +711,41 @@ def calculate_mutual_information_enhanced(msa_sequences, weights=None,
     """
     if not msa_sequences:
         return None
+    
+    # Check for single-sequence MSA (either exactly one sequence or multiple identical sequences)
+    unique_sequences = set(msa_sequences)
+    if len(unique_sequences) <= 1:
+        seq_length = len(msa_sequences[0])
+        if verbose:
+            logger.info(f"Single-sequence MSA detected, skipping enhanced MI calculation for sequence of length {seq_length}")
+        
+        # Create zero matrices
+        mi_matrix = np.zeros((seq_length, seq_length))
+        
+        # Get adaptive pseudocount if not specified (for consistent output structure)
+        if pseudocount is None:
+            pseudocount = get_adaptive_pseudocount(msa_sequences)
+            
+        # Define alphabet for consistent output structure
+        alphabet = ['A', 'C', 'G', 'U', 'T', '-', 'N']
+        alphabet_size = len(alphabet)
+        
+        # Return result with the same structure as the full calculation
+        return {
+            'mi_matrix': mi_matrix,
+            'apc_matrix': mi_matrix,  # APC matrix will also be zeros
+            'scores': mi_matrix,
+            'coupling_matrix': mi_matrix,
+            'method': 'mutual_information_enhanced',
+            'top_pairs': [],  # No top pairs for a zero matrix
+            'params': {
+                'pseudocount': pseudocount,
+                'alphabet_size': alphabet_size,
+                'gap_threshold': gap_threshold,
+                'conservation_range': conservation_range,
+                'single_sequence': True  # Flag to indicate this was a single-sequence case
+            }
+        }
         
     # Initialize feature dictionary
     features = {}

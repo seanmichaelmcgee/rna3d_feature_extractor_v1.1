@@ -61,6 +61,42 @@ def calculate_mutual_information(msa_sequences, pseudocount=None, verbose=False)
         if verbose:
             print("No sequences provided")
         return None
+            
+    # Check for single-sequence MSA (either exactly one sequence or multiple identical sequences)
+    unique_sequences = set(msa_sequences)
+    if len(unique_sequences) <= 1:
+        seq_len = len(msa_sequences[0])
+        if verbose:
+            print(f"Single-sequence MSA detected, skipping MI calculation for sequence of length {seq_len}")
+        
+        # Create zero matrix for MI scores
+        mi_matrix = np.zeros((seq_len, seq_len))
+        
+        # Get adaptive pseudocount if not specified (for consistent output structure)
+        if pseudocount is None:
+            pseudocount = get_adaptive_pseudocount(msa_sequences)
+            
+        # Define allowed characters (for consistent output structure)
+        allowed_chars = set(['A', 'C', 'G', 'U', 'T', '-', 'N', 'a', 'c', 'g', 'u', 't', 'n'])
+        alphabet_size = len(allowed_chars)
+        
+        # Return the same structure as expected from full calculation
+        calculation_time = 0.0
+        if verbose:
+            print(f"Skipped MI calculation for single-sequence MSA in 0.0s")
+            
+        return {
+            'scores': mi_matrix,
+            'coupling_matrix': mi_matrix,
+            'method': 'mutual_information',
+            'top_pairs': [],  # No top pairs for a zero matrix
+            'params': {
+                'pseudocount': pseudocount,
+                'alphabet_size': alphabet_size,
+                'single_sequence': True  # Flag to indicate this was a single-sequence case
+            },
+            'calculation_time': calculation_time
+        }
         
     # Get dimensions
     n_seqs = len(msa_sequences)
