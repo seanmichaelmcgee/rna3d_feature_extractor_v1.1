@@ -404,12 +404,26 @@ You can verify the format of extracted feature files:
   --thermo-file data/processed/thermo_features/1SCL_A_thermo_features.npz
 ```
 
-## TODO List
+## Optimization Status
 
-1. **Optimize MSA Calculation**:
-   - Exclude MSA calculation when there is only one sequence
-   - This will avoid futile computation for very long sequences
-   - Significantly reduce compute resource usage
+### Single-Sequence MSA Detection
+
+The MI calculation has been successfully optimized to detect and skip calculation for single-sequence MSAs:
+
+- Implementation detects MSAs with only one unique sequence
+- Returns zero matrices with appropriate metadata
+- Performance improved from minutes to milliseconds for long sequences
+- First spotted in action with sequence R1138 (720 nt) during test feature extraction
+- Full extraction output documented in `notebooks/test_feature_extr_output_Apr211222.md`
+
+Note: When working with targets like R1138 that have single-sequence MSAs, models should handle the all-zero MI matrices appropriately.
+
+## Future Work
+
+1. **Notebook Refactoring**:
+   - Create lean, production-ready implementations of feature extraction functions
+   - Extract core functionality from notebooks into standalone modules
+   - Simplify the feature extraction process for production use
 
 2. **Containerized MSA Testing**:
    - Create a test notebook for MSA calculation in containerized environments
