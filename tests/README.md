@@ -1,7 +1,94 @@
-# RNA Feature Extraction Tests
+# RNA 3D Feature Extractor Tests
 
-This directory contains tests for the RNA feature extraction shell scripts. The tests verify:
+This directory contains tests for the RNA 3D Feature Extractor.
 
+## Test Structure
+
+The tests are organized to mirror the project structure:
+
+- `tests/data/` - Tests for data loading and management
+- `tests/features/` - Tests for feature extraction
+- `tests/processing/` - Tests for batch processing
+- `tests/analysis/` - Tests for analysis utilities
+- `tests/validation/` - Tests for feature validation
+- `tests/integration/` - Integration tests for the entire workflow
+
+## Running Tests
+
+### Running All Tests
+
+```bash
+python -m unittest discover
+```
+
+### Running a Specific Test Module
+
+```bash
+python -m unittest tests.data.test_data_manager
+```
+
+### Running a Specific Test Case
+
+```bash
+python -m unittest tests.data.test_data_manager.TestDataManager.test_load_rna_data
+```
+
+## Test Requirements
+
+Before running tests, ensure you have activated the RNA 3D feature extractor environment:
+
+```bash
+mamba activate rna3d-core
+```
+
+## Test Coverage
+
+We aim for high test coverage, especially for core functionality. The following components are fully tested:
+
+- DataManager
+- FeatureExtractor
+- BatchProcessor
+- MemoryMonitor
+- ResultValidator
+
+## Integration Tests
+
+Integration tests verify that all components work together correctly. These tests use mock data to simulate the RNA feature extraction pipeline.
+
+## Adding New Tests
+
+When adding new functionality, please also add appropriate tests. Follow these guidelines:
+
+1. Create test files that mirror the module structure
+2. Use descriptive test method names (`test_load_rna_data` instead of `test_1`)
+3. Include both positive and negative test cases
+4. Use `setUp` and `tearDown` methods for test fixtures
+5. Use mocks for external dependencies
+
+## Mock Data
+
+The test suite uses mock data to avoid dependencies on large RNA datasets. Mock data includes:
+
+- Small RNA sequences
+- Simplified MSA data
+- Pre-computed feature matrices
+
+## Test Environment Variables
+
+Some tests may use environment variables to configure behavior. Important variables:
+
+- `RNA_TEST_DATA_DIR` - Override the test data directory
+- `RNA_TEST_SKIP_SLOW` - Skip slow tests
+
+## Legacy Tests
+
+The original shell script-based tests are also available:
+
+```bash
+./tests/test_feature_extraction_scripts.sh
+```
+
+These tests verify:
 1. Basic functionality of the extraction scripts
 2. Resume capability for interrupted processes
 3. Skip-existing functionality
@@ -9,89 +96,5 @@ This directory contains tests for the RNA feature extraction shell scripts. The 
 5. HTML report generation
 6. Output feature format validity
 
-## Prerequisites
-
-Before running tests, ensure:
-
-1. The environment is properly set up using `./setup.sh`
-2. The `rna3d-core` environment is activated: `mamba activate rna3d-core`
-3. All required dependencies are installed (especially ViennaRNA)
-
-The scripts will automatically check for proper environment configuration, but it's more efficient to verify the environment beforehand.
-
-## Running Tests
-
-To run all tests:
-
-```bash
-# Make sure the environment is activated
-mamba activate rna3d-core
-
-# Run tests
-./tests/test_feature_extraction_scripts.sh
-```
-
-The test script will:
-1. Run all tests in sequence
-2. Generate a detailed test report in Markdown format
-3. Store test output in the `data/test_output` directory
-4. Log all test details to `tests/feature_extraction_test.log`
-
-## Individual Tests
-
-Each test can also be run individually:
-
-### Basic Feature Extraction
-
-```bash
-# For training data
-./scripts/feature_extraction/extract_train_features.sh --target 1SCL_A --output-dir data/test_train --limit 1
-
-# For validation data
-./scripts/feature_extraction/extract_validation_features.sh --target R1107 --output-dir data/test_validation --limit 1
-
-# For test data
-./scripts/feature_extraction/extract_test_features.sh --target R1107 --output-dir data/test_test --limit 1
-```
-
-### Feature Verification
-
-```bash
-# Verify features in a directory
-./scripts/feature_extraction/verify_features.py data/test_train
-
-# Or verify specific feature files
-./scripts/feature_extraction/verify_features.py . --thermo-file data/test_train/thermo_features/1SCL_A_thermo_features.npz
-```
-
-### Resume and Skip Testing
-
-```bash
-# Basic test script for these functionalities
-./scripts/feature_extraction/test_extraction_scripts.sh
-```
-
-## Test Report
-
-After running the main test script, a comprehensive test report will be generated at:
+After running the script tests, a comprehensive report will be generated at:
 `tests/feature_extraction_test_report.md`
-
-The report includes:
-- Test environment details
-- Each test's description, command, and result
-- Test output (truncated for readability)
-- Overall success/failure status
-- Duration of each test
-
-## Adding New Tests
-
-To add new tests:
-1. Modify `test_feature_extraction_scripts.sh` 
-2. Add a new test section using the `run_test` function
-3. Follow the existing pattern for consistent reporting
-
-```bash
-run_test "Test Name" \
-    "command to run" \
-    "Description of what this test verifies"
-```
